@@ -1,0 +1,14 @@
+build/
+install/
+log/
+.env
+.env.*
+.ros/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.vscode/
+.idea/
+.codex/
+.agents/

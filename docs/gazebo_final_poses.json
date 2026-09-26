@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "source": "live /world/assignment2/pose/info",
+  "poses": {
+    "blue_cube": [
+      0.4,
+      -0.17,
+      0.143
+    ],
+    "red_cube": [
+      0.2,
+      -0.17,
+      0.143
+    ],
+    "yellow_cube": [
+      0.3,
+      -0.17,
+      0.143
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Explicit integration test: moves the simulated robot. No LLM required."""
+import argparse
+import json
+from pathlib import Path
+import yaml
+import rclpy
+from ament_index_python.packages import get_package_share_directory
+from moveit_msgs.srv import GetPlanningScene
+from ur3_llm_control.srv import ExecuteSkill
+
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--report',type=Path)
+args=parser.parse_args()
+rclpy.init();node=rclpy.create_node('robot_smoke_test')
+report={'status':'RUNNING','steps':[]}
+def call(kind,name,request,timeout=240):
+    client=node.create_client(kind,name)
+    if not client.wait_for_service(timeout_sec=45):raise RuntimeError(name+' unavailable')
+    future=client.call_async(request);rclpy.spin_until_future_complete(node,future,timeout_sec=timeout)
+    if not future.done():raise RuntimeError(name+' timed out; state unknown, do not retry')
+    return future.result()
+def scene():
+    request=GetPlanningScene.Request();request.components.components=1023
+    result=call(GetPlanningScene,'/get_planning_scene',request,15).scene
+    return {o.id:o for o in result.world.collision_objects}, {o.object.id:o for o in result.robot_state.attached_collision_objects}
+try:
+    for skill,obj,zone in [('home','',''),('pick','red_cube',''),('place','red_cube','zone_b'),('home','','')]:
+        response=call(ExecuteSkill,'/robot_skills/execute',ExecuteSkill.Request(skill=skill,object=obj,zone=zone))
+        state=json.loads(response.state_json)
+        entry={'skill':skill,'object':obj,'zone':zone,'status':response.status,'state':state}
+        report['steps'].append(entry)
+        print(skill,response.status,flush=True)
+        if response.status!='SUCCESS':raise RuntimeError(skill+' failed: '+response.status)
+        world,attached=scene()
+        entry['world']=sorted(world);entry['attached']=sorted(attached)
+        if skill=='pick':
+            assert 'red_cube' in attached and 'red_cube' not in world
+            assert state['held_object']=='red_cube'
+            print('WORLD -> ATTACHED: PASS',flush=True)
+        if skill=='place':
+            assert 'red_cube' in world and 'red_cube' not in attached
+            assert state['held_object'] is None and state['object_locations']['red_cube']=='zone_b'
+            # In this MoveIt version geometry may be in object.pose or primitive pose.
+            objmsg=world['red_cube']
+            entry['placed_primitive_positions']=[[p.position.x,p.position.y,p.position.z] for p in objmsg.primitive_poses]
+            cfg=yaml.safe_load((Path(get_package_share_directory('ur3_llm_control'))/'config/scene.yaml').read_text())
+            # MoveIt canonicalizes geometry into object.pose with local primitives.
+            # Compose object pose and primitive pose instead of treating the latter as world coordinates.
+            v=entry['placed_primitive_positions'][0]
+            q=objmsg.pose.orientation
+            u=[q.x,q.y,q.z]
+            def cross(a,b):return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
+            t=[2*x for x in cross(u,v)];c=cross(u,t)
+            origin=[objmsg.pose.position.x,objmsg.pose.position.y,objmsg.pose.position.z]
+            actual=[origin[i]+v[i]+q.w*t[i]+c[i] for i in range(3)]
+            entry['placed_world_position']=actual
+            assert all(abs(a-b)<1e-6 for a,b in zip(actual,cfg['zones']['zone_b'])), 'Placed geometry is not at zone_b'
+            print('ATTACHED -> WORLD and zone state: PASS',flush=True)
+    report['status']='PASS'
+except Exception as exc:
+    report['status']='FAIL';report['error']=type(exc).__name__+': '+str(exc);print('FAIL:',exc,flush=True)
+finally:
+    if args.report:args.report.write_text(json.dumps(report,indent=2)+'\n')
+    node.destroy_node();rclpy.shutdown()
+raise SystemExit(0 if report['status']=='PASS' else 1)

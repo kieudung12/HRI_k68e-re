@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Retry spawn only when no joint-state publisher exists after discovery."""
+import time
+import rclpy
+rclpy.init()
+node=rclpy.create_node("spawn_guard")
+deadline=time.monotonic()+3
+exists=False
+while time.monotonic()<deadline:
+    rclpy.spin_once(node,timeout_sec=0.2)
+    if node.count_publishers("/joint_states"):
+        exists=True
+        break
+node.get_logger().info("Robot already present; skip spawn retry" if exists else "No joint-state publisher; request spawn retry")
+node.destroy_node()
+rclpy.shutdown()
+raise SystemExit(0 if exists else 2)

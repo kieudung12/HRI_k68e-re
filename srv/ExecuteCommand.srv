@@ -1,0 +1,7 @@
+string command
+bool student_task
+string plan_json
+bool dry_run
+---
+string status
+string report_json

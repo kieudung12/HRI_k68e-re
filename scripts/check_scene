@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Read-only collision-aware IK audit for all deterministic targets."""
+import json
+from pathlib import Path
+import yaml
+import rclpy
+from ament_index_python.packages import get_package_share_directory
+from moveit_msgs.srv import GetPositionIK, GetPlanningScene, GetStateValidity
+from ur3_llm_control.srv import GetState
+
+rclpy.init();node=rclpy.create_node("check_scene")
+def call(kind,name,request):
+    client=node.create_client(kind,name)
+    if not client.wait_for_service(timeout_sec=15):raise RuntimeError(name+" unavailable")
+    future=client.call_async(request);rclpy.spin_until_future_complete(node,future,timeout_sec=15)
+    if not future.done():raise RuntimeError(name+" timeout")
+    return future.result()
+try:
+    share=Path(get_package_share_directory("ur3_llm_control"))
+    cfg=yaml.safe_load((share/"config/scene.yaml").read_text())
+    skills=yaml.safe_load((share/"config/robot_skills.yaml").read_text())["robot_skills"]["ros__parameters"]
+    state=json.loads(call(GetState,"/robot_skills/state",GetState.Request()).state_json)
+    request=GetPlanningScene.Request();request.components.components=1023
+    scene=call(GetPlanningScene,"/get_planning_scene",request).scene
+    print("WORLD:",[o.id for o in scene.world.collision_objects])
+    print("ATTACHED:",[o.object.id for o in scene.robot_state.attached_collision_objects])
+    failed=0
+    seed=scene.robot_state
+    for name,xyz in {**cfg["objects"],**cfg["zones"]}.items():
+        for hover in (0.0,skills["approach_height"]):
+            req=GetPositionIK.Request();ik=req.ik_request
+            ik.group_name="ur_manipulator";ik.ik_link_name=state["end_effector_link"]
+            ik.avoid_collisions=True;ik.timeout.sec=2;ik.robot_state=seed
+            ik.pose_stamped.header.frame_id=cfg["frame"]
+            p=ik.pose_stamped.pose;p.position.x=xyz[0];p.position.y=xyz[1];p.position.z=xyz[2]+skills["grasp_offset"]+hover
+            p.orientation.x,p.orientation.y,p.orientation.z,p.orientation.w=skills["tool_quaternion"]
+            result=call(GetPositionIK,"/compute_ik",req)
+            ok=result.error_code.val==1;failed+=not ok
+            print(name,"hover" if hover else "grasp", "PASS" if ok else "FAIL",result.error_code.val)
+            if ok:seed=result.solution
+    # Deliberately solve a pose inside the table with IK collision filtering off,
+    # then prove the unchanged Planning Scene rejects that configuration.
+    req=GetPositionIK.Request();ik=req.ik_request
+    ik.group_name="ur_manipulator";ik.ik_link_name=state["end_effector_link"]
+    ik.avoid_collisions=False;ik.timeout.sec=2;ik.robot_state=seed
+    ik.pose_stamped.header.frame_id=cfg["frame"]
+    ik.pose_stamped.pose.position.x=0.30;ik.pose_stamped.pose.position.z=0.09
+    ik.pose_stamped.pose.orientation.x=1.0;ik.pose_stamped.pose.orientation.w=0.0
+    probe=call(GetPositionIK,"/compute_ik",req)
+    blocked=False
+    if probe.error_code.val==1:
+        validity=GetStateValidity.Request();validity.robot_state=probe.solution;validity.group_name="ur_manipulator"
+        checked=call(GetStateValidity,"/check_state_validity",validity)
+        contacts=[(c.contact_body_1,c.contact_body_2) for c in checked.contacts]
+        blocked=not checked.valid and any("table" in pair for pair in contacts)
+        print("TABLE CONTACTS:",contacts)
+    print("Table affects collision checking:","PASS" if blocked else "FAIL")
+    failed+=not blocked
+    raise SystemExit(1 if failed else 0)
+finally:
+    node.destroy_node();rclpy.shutdown()

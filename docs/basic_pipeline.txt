@@ -1,0 +1,18 @@
+USER COMMAND
+Structured test plan
+
+STRUCTURED PLAN
+1. pick(red_cube)
+2. place(red_cube, zone_b)
+3. home()
+
+VALIDATION
+VALID
+
+EXECUTION
+{'skill': 'pick', 'object': 'red_cube'} ........ SUCCESS
+{'skill': 'place', 'object': 'red_cube', 'zone': 'zone_b'} ........ SUCCESS
+{'skill': 'home'} ........ SUCCESS
+
+TASK_SUCCESS
+FINAL STATE: {"held_object": null, "object_locations": {"blue_cube": "source", "red_cube": "zone_b", "yellow_cube": "source"}, "revision": 10, "faulted": false}

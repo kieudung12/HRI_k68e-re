@@ -1,0 +1,11 @@
+robot_skills:
+  ros__parameters:
+    use_sim_time: true
+    planning_group: ur_manipulator
+    home_target: up
+    velocity_scaling: 0.05
+    acceleration_scaling: 0.05
+    approach_height: 0.08
+    grasp_offset: 0.10
+    # tool +Z points down: 180 degrees about world X.
+    tool_quaternion: [1.0, 0.0, 0.0, 0.0]

@@ -1,0 +1,60 @@
+"""Small ROS client; all planning and validation happen in the command server."""
+import argparse
+import json
+from pathlib import Path
+import rclpy
+from ur3_llm_control.srv import ExecuteCommand
+
+
+def main():
+    parser = argparse.ArgumentParser(description="UR3 validated skill planner")
+    parser.add_argument("command", nargs="?")
+    parser.add_argument("--student-task", action="store_true",
+                        help="Supply deterministic student mapping as trusted LLM context")
+    parser.add_argument("--plan-file", type=Path, help="Use structured plan without LLM")
+    parser.add_argument("--dry-run", action="store_true", help="Plan and validate without motion")
+    args = parser.parse_args()
+    command = args.command or (
+        "Arrange all objects according to my student ID."
+        if args.student_task and not args.plan_file else "")
+    if not command and not args.plan_file:
+        command = input("USER COMMAND: ").strip()
+    rclpy.init()
+    node = rclpy.create_node("command_cli")
+    try:
+        request = ExecuteCommand.Request(
+            command=command, student_task=args.student_task, dry_run=args.dry_run,
+            plan_json=args.plan_file.read_text() if args.plan_file else "")
+        client = node.create_client(ExecuteCommand, "/llm/command")
+        if not client.wait_for_service(timeout_sec=10):
+            raise RuntimeError("/llm/command unavailable; launch application first")
+        print("USER COMMAND\n" + (command or "Structured test plan"), flush=True)
+        future = client.call_async(request)
+        rclpy.spin_until_future_complete(node, future, timeout_sec=1800)
+        if not future.done():
+            raise RuntimeError("Command timed out; robot state unknown. Inspect before retrying")
+        response = future.result()
+        report = json.loads(response.report_json)
+        if "plan" in report:
+            print("\nLLM PLAN" if command else "\nSTRUCTURED PLAN")
+            for i, step in enumerate(report["plan"]["plan"], 1):
+                arguments = ", ".join(step[k] for k in ("object", "zone") if k in step)
+                print(f"{i}. {step['skill']}({arguments})")
+            print("\nVALIDATION\n" + report["validation"])
+        if "results" in report:
+            print("\nEXECUTION")
+            for entry in report["results"]:
+                print(f"{entry['step']} ........ {entry['status']}")
+        if "error" in report:
+            print("\nERROR\n" + report["error"])
+        print("\n" + response.status)
+        if "state" in report:
+            print("FINAL STATE: " + json.dumps(report["state"], ensure_ascii=False))
+        return 0 if response.status in ("TASK_SUCCESS", "VALIDATED_ONLY") else 1
+    except (RuntimeError, ValueError, OSError) as exc:
+        print("TASK_FAILED: " + str(exc))
+        return 1
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()

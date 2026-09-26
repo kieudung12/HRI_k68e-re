@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""Separate live 9Router test. Never invokes robot services or prints credentials."""
+import os
+from pathlib import Path
+from ament_index_python.packages import get_package_share_directory
+from ur3_llm_control.llm_planner import LLMPlanner
+from ur3_llm_control.task_validator import PlanValidator
+
+missing=[key for key in ('NINEROUTER_BASE_URL','NINEROUTER_API_KEY','NINEROUTER_MODEL') if not os.environ.get(key)]
+if missing:
+    print('NOT VERIFIED: missing '+', '.join(missing))
+    raise SystemExit(77)
+try:
+    planner=LLMPlanner(Path(get_package_share_directory('ur3_llm_control'))/'prompt/planner_prompt.txt')
+    for text,obj,zone in [('Put the red cube in zone B.','red_cube','zone_b'),
+                         ('Hãy lấy khối màu vàng và đặt nó vào vùng A.','yellow_cube','zone_a')]:
+        plan=planner.plan(text)
+        result=PlanValidator().validate(plan)
+        assert result.final_state.object_locations[obj]==zone
+        print('PASS:',text)
+except Exception as exc:
+    print('FAIL:',type(exc).__name__,str(exc))
+    raise SystemExit(1)
