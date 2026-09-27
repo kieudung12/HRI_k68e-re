@@ -1,6 +1,8 @@
 """Proven UR simulation + MoveIt; application starts only after controller readiness."""
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler, SetEnvironmentVariable, TimerAction, EmitEvent
+from launch.actions import (DeclareLaunchArgument, IncludeLaunchDescription,
+                             RegisterEventHandler, SetEnvironmentVariable,
+                             TimerAction, EmitEvent, UnsetEnvironmentVariable)
 from launch.events import Shutdown
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -33,8 +35,20 @@ def generate_launch_description():
     def after_guard(event,context):
         return [retry] if event.returncode==2 else []
     return LaunchDescription([
-        DeclareLaunchArgument("gui",default_value="false"),
-        DeclareLaunchArgument("rviz",default_value="false"),
+        # VS Code installed from Snap exports its glibc/GTK search paths. If
+        # they leak into RViz, it loads /snap/core20/libpthread and exits with
+        # a GLIBC_PRIVATE symbol error. Remove only Snap desktop variables;
+        # ROS/Gazebo library paths remain available to the rest of the launch.
+        *[UnsetEnvironmentVariable(name) for name in (
+            "SNAP", "SNAP_NAME", "SNAP_DATA", "SNAP_COMMON", "SNAP_LIBRARY_PATH",
+            "SNAP_USER_DATA", "SNAP_USER_COMMON", "SNAP_REVISION", "SNAP_COOKIE",
+            "SNAP_CONTEXT", "SNAP_REAL_HOME", "SNAP_EUID", "SNAP_ARCH",
+            "SNAP_INSTANCE_NAME", "SNAP_LAUNCHER_ARCH_TRIPLET", "SNAP_UID",
+            "SNAP_VERSION", "GTK_EXE_PREFIX", "GTK_PATH", "GTK_MODULES",
+            "GTK_IM_MODULE_FILE", "GDK_PIXBUF_MODULE_FILE", "GDK_PIXBUF_MODULEDIR",
+            "GDK_BACKEND", "LD_PRELOAD")],
+        DeclareLaunchArgument("gui",default_value="true"),
+        DeclareLaunchArgument("rviz",default_value="true"),
         DeclareLaunchArgument("application",default_value="true"),
         DeclareLaunchArgument("world_file",default_value=PathJoinSubstitution([share,"worlds","assignment2.sdf"])),
         DeclareLaunchArgument("ign_partition",default_value="ur3_assignment2"),

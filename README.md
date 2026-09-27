@@ -103,7 +103,7 @@ ros2 launch ur3_llm_control llm_robot.launch.py
 ros2 launch ur3_llm_control llm_robot.launch.py gui:=true rviz:=true
 ```
 
-Verification processes are stopped in the delivered workspace. Start a fresh scene using the commands above. Use only one launch at a time. Default GUI/RViz are off for reproducible tests. In the GUI, double-click `ur` in the Entity Tree to focus the camera. Wait for `READY`, `Scene initialized`, and the `/llm/command` service before sending commands. No LLM task or pick/place starts automatically.
+Verification processes are stopped in the delivered workspace. Start a fresh scene using the commands above. Use only one launch at a time. GUI and RViz open by default; for headless runs pass `gui:=false rviz:=false`. In the GUI, double-click `ur` in the Entity Tree to focus the camera. Wait for `READY`, `Scene initialized`, and the `/llm/command` service before sending commands. No LLM task or pick/place starts automatically.
 
 For separate stack/application troubleshooting:
 
