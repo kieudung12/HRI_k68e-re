@@ -19,19 +19,22 @@ public:
   ~SceneManager();
   geometry_msgs::msg::Pose objectPose(const std::string& object) const;
   geometry_msgs::msg::Pose zonePose(const std::string& zone) const;
+  geometry_msgs::msg::Pose toolPoseForObject(const geometry_msgs::msg::Pose& pose);
+  bool resetObjects();
   bool attach(const std::string& object);
   bool detach(const std::string& object, const geometry_msgs::msg::Pose& pose);
   bool healthy() const {return healthy_;}
 private:
   moveit_msgs::msg::CollisionObject box(const std::string&, const geometry_msgs::msg::Pose&, const std::vector<double>&) const;
   void spawn(const std::string&, const geometry_msgs::msg::Pose&, const std::vector<double>&, const std::string&, bool);
+  void spawnZone(const std::string&, const geometry_msgs::msg::Pose&, char);
   bool setPose(const std::string&, const geometry_msgs::msg::Pose&);
   Eigen::Isometry3d toolTransform();
   void sync();
   rclcpp::Node::SharedPtr io_;
   std::string frame_,eef_,world_,held_;
-  double size_;
-  std::map<std::string,geometry_msgs::msg::Pose> objects_,zones_;
+  double size_,tray_size_,tray_elevation_,tray_wall_height_;
+  std::map<std::string,geometry_msgs::msg::Pose> objects_,source_objects_,zones_;
   moveit::planning_interface::PlanningSceneInterface scene_;
   ignition::transport::Node gz_;
   tf2_ros::Buffer tf_;

@@ -1,0 +1,2044 @@
+[
+  {
+    "case": 0,
+    "status": "PASS",
+    "steps": [
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "unknown",
+        "zone": "",
+        "status": "INVALID_OBJECT",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 7.63,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 7.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 2
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.46,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 4.72,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 4
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.52,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 4.72,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 6
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.47,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 7
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 5.67,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 8
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.47,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 9
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 4.92,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 10
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.46,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 11
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 4.92,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 12
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.52,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 13
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 5.67,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 14
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.97,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 15
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 15
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 6.22,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 16
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "blue_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.96,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 17
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 17
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 6.78,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_c",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 18
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.13,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_c",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 19
+        }
+      }
+    ],
+    "mapping": {
+      "red_cube": "zone_a",
+      "yellow_cube": "zone_b",
+      "blue_cube": "zone_c"
+    }
+  },
+  {
+    "case": 1,
+    "status": "PASS",
+    "steps": [
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "unknown",
+        "zone": "",
+        "status": "INVALID_OBJECT",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 7.63,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 7.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 2
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.97,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 6.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 4
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "blue_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 5.27,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 6.43,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_b",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 6
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_b",
+            "red_cube": "zone_a",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 7
+        }
+      }
+    ],
+    "mapping": {
+      "red_cube": "zone_a",
+      "yellow_cube": "zone_c",
+      "blue_cube": "zone_b"
+    }
+  },
+  {
+    "case": 2,
+    "status": "PASS",
+    "steps": [
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "unknown",
+        "zone": "",
+        "status": "INVALID_OBJECT",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "unknown",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_SKILL",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 7.63,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "unknown",
+        "status": "INVALID_ZONE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 6.53,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 2
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.47,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 3.47,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 4
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.72,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_b",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 6.53,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 6
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.46,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 7
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 3.47,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 8
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "blue_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.82,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 9
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_b",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 9
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 6.78,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_c",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 10
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "blue_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 3.46,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 11
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 3.61,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_c",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 12
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.13,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_c",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 13
+        }
+      }
+    ],
+    "mapping": {
+      "red_cube": "zone_b",
+      "yellow_cube": "zone_a",
+      "blue_cube": "zone_c"
+    }
+  },
+  {
+    "case": 3,
+    "status": "PASS",
+    "steps": [
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "unknown",
+        "zone": "",
+        "status": "INVALID_OBJECT",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "unknown",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_SKILL",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 7.63,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "unknown",
+        "status": "INVALID_ZONE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 6.53,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 2
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.72,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_b",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 6.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 4
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "blue_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 5.27,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_b",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 6.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_a",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 6
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.12,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_a",
+            "red_cube": "zone_b",
+            "yellow_cube": "zone_c"
+          },
+          "planning_frame": "world",
+          "revision": 7
+        }
+      }
+    ],
+    "mapping": {
+      "red_cube": "zone_b",
+      "yellow_cube": "zone_c",
+      "blue_cube": "zone_a"
+    }
+  },
+  {
+    "case": 4,
+    "status": "PASS",
+    "steps": [
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "unknown",
+        "zone": "",
+        "status": "INVALID_OBJECT",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "unknown",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_SKILL",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 7.63,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "unknown",
+        "status": "INVALID_ZONE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 6.28,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 2
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.62,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_c",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 6.53,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 4
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "blue_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.82,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_c",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 6.43,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_b",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 6
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_b",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_a"
+          },
+          "planning_frame": "world",
+          "revision": 7
+        }
+      }
+    ],
+    "mapping": {
+      "red_cube": "zone_c",
+      "yellow_cube": "zone_a",
+      "blue_cube": "zone_b"
+    }
+  },
+  {
+    "case": 5,
+    "status": "PASS",
+    "steps": [
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_a",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "unknown",
+        "zone": "",
+        "status": "INVALID_OBJECT",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "unknown",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_SKILL",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "source",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 0
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "red_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 7.63,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "unknown",
+        "status": "INVALID_ZONE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "red_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "held",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 1
+        }
+      },
+      {
+        "skill": "place",
+        "object": "red_cube",
+        "zone": "zone_c",
+        "status": "SUCCESS",
+        "seconds": 6.27,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "source"
+          },
+          "planning_frame": "world",
+          "revision": 2
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "yellow_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.62,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_c",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "yellow_cube",
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "held"
+          },
+          "planning_frame": "world",
+          "revision": 3
+        }
+      },
+      {
+        "skill": "place",
+        "object": "yellow_cube",
+        "zone": "zone_b",
+        "status": "SUCCESS",
+        "seconds": 6.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "source",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 4
+        }
+      },
+      {
+        "skill": "pick",
+        "object": "blue_cube",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.97,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_c",
+        "status": "INVALID_STATE",
+        "seconds": 0.0,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": "blue_cube",
+          "object_locations": {
+            "blue_cube": "held",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 5
+        }
+      },
+      {
+        "skill": "place",
+        "object": "blue_cube",
+        "zone": "zone_a",
+        "status": "SUCCESS",
+        "seconds": 6.23,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_a",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 6
+        }
+      },
+      {
+        "skill": "home",
+        "object": "",
+        "zone": "",
+        "status": "SUCCESS",
+        "seconds": 4.13,
+        "state": {
+          "end_effector_link": "tool0",
+          "faulted": false,
+          "held_object": null,
+          "object_locations": {
+            "blue_cube": "zone_a",
+            "red_cube": "zone_c",
+            "yellow_cube": "zone_b"
+          },
+          "planning_frame": "world",
+          "revision": 7
+        }
+      }
+    ],
+    "mapping": {
+      "red_cube": "zone_c",
+      "yellow_cube": "zone_b",
+      "blue_cube": "zone_a"
+    }
+  }
+]

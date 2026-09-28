@@ -2,11 +2,17 @@
 
 This self-contained ROS 2 package turns English or Vietnamese commands into validated UR3e pick/place skills in Gazebo Fortress. The LLM selects skills; MoveIt computes and executes all task motion.
 
-**Before your demo:** fill `student_name` and `student_id` in `config/student_config.yaml`. Both are deliberately `TODO`. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for executed tests, failures and unverified work. A successful build is not proof of robot execution.
+| Student | Student ID | XX | P |
+|---|---:|---:|---:|
+| Kieu Minh Dung | 23020729 | 29 | 5 |
+
+**Required assignment:** Zone A → Blue (`blue_cube`), Zone B → Yellow (`yellow_cube`), Zone C → Red (`red_cube`). The configured values are in `config/student_config.yaml`. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for current test results and unverified work; a successful build alone is not proof of robot execution.
 
 Verified robot and multi-object results: [verification record](docs/VERIFICATION.md).
 
-![Gazebo after the P=0 robot test](docs/gazebo_demo.png)
+![Gazebo after the earlier deterministic P=0 regression](docs/gazebo_demo.png)
+
+Earlier deterministic P=0 regression image; it does not show the configured P=5 LLM task.
 
 ## Architecture
 
@@ -36,6 +42,7 @@ ROS endpoints:
 | `/llm/command` | `ur3_llm_control/srv/ExecuteCommand` | Natural language or structured plan; whole-plan validation |
 | `/robot_skills/state` | `ur3_llm_control/srv/GetState` | Authoritative logical state and revision |
 | `/robot_skills/execute` | `ur3_llm_control/srv/ExecuteSkill` | Deterministic single-skill diagnostic/backend |
+| `/robot_skills/reset_scene` | `ur3_llm_control/srv/ResetScene` | Manual demo reset; not an LLM skill |
 | `/joint_trajectory_controller/follow_joint_trajectory` | `control_msgs/action/FollowJointTrajectory` | MoveIt trajectory execution |
 
 The single-skill service is a developer diagnostic, not the natural-language entry point. It checks skill arguments and current state independently. Every application plan passes full validation before its first skill. Revision checks reject state changes between validation and execution. Concurrent application commands return `BUSY`. A failed skill stops the plan. Motion/planning/grasp faults require inspecting and restarting the complete simulation.
@@ -181,24 +188,45 @@ Allowed JSON is exactly `{"plan": [...]}`. Allowed steps are `pick(object)`, `pl
 
 The validator tracks held object, object locations and zone occupancy. It rejects place-before-pick, a second pick while holding, mismatched place objects, occupied zones, incomplete plans, stale/faulted state, and student plans that do not reach the required mapping. Empty plans are rejected. State is copied during validation; validation itself has no side effects.
 
-`home()` plans to the UR SRDF named target `up`. `pick()` moves above the cube, descends, attaches, and retreats. `place()` moves above the zone, descends, detaches into the world, and retreats. Pose targets use collision-aware IK with current-state seeds. The full vertical approach is prevalidated before moving to hover, with bounded retries over IK seeds. Cartesian segments require complete paths, collision checking, angles unwrapped from measured joints, bounded joint jumps and explicit retiming at configured velocity/acceleration scaling (default 0.05).
+`home()` plans to the UR SRDF named target `up`. `pick()` moves above the cube, descends, attaches, and retreats. `place()` moves above the zone, descends, detaches into the world, and retreats. Pose targets use collision-aware IK with current-state seeds. The full vertical approach is prevalidated before moving to hover, with bounded retries over IK seeds. Cartesian segments require complete paths, collision checking, angles unwrapped from measured joints, bounded joint jumps and explicit retiming at configured velocity/acceleration scaling (default 0.25).
 
 The end-effector is discovered from `MoveGroupInterface`, not hard-coded. This machine reported `tool0`, planning frame `world`, group `ur_manipulator`. The UR model defines tool +Z as forward. Quaternion `[1, 0, 0, 0]` points that axis downward. All six pickup/placement targets and their six hover targets are checked using collision-aware IK by `check_scene`.
 
-**There is no physical gripper or gripper controller on this UR3e model.** This is an explicit simulated grasp abstraction, not a claimed physical grasp. A virtual 10 cm tool-to-cube-center offset leaves clearance from the wrist. MoveIt represents the cube as WORLD before pick, ATTACHED during carry, and WORLD at its destination after place. Native atomic attachment transitions and post-update queries prevent duplicate collision representations. Only the attachment link is a touch link; the table and other objects remain collidable.
+**There is no physical gripper or gripper controller on this UR3e model.** This is an explicit simulated grasp abstraction, not a claimed physical grasp. A virtual 15 cm tool-to-cube-center offset leaves clearance from the wrist. MoveIt represents the cube as WORLD before pick, ATTACHED during carry, and WORLD at its destination after place. Native atomic attachment transitions and post-update queries prevent duplicate collision representations. Only the attachment link is a touch link; the table and other objects remain collidable.
 
 Gazebo cubes are static, pose-driven bodies. `SceneManager` uses native Ignition Transport `set_pose` with tool TF at approximately 20 Hz while carrying; it checks acknowledgments and TF freshness. The arm is never teleported. Release sets the deterministic zone pose. This abstraction does not simulate finger contact, grasp force, slip, or dropped-object physics. Table and cube sizes and positions come from the same `scene.yaml` for both engines. Cube centers include 3 mm clearance over the tabletop to avoid numerical contact ambiguity.
 
 ## Student-ID task and occupied zones
 
-Fill the real identity in `config/student_config.yaml` before running:
+The configured ID is **23020729**, so `XX = 29` and `P = 29 mod 6 = 5`. The required mapping is **Zone A → Blue, Zone B → Yellow, Zone C → Red**. Python calculates that mapping deterministically. The LLM receives only the trusted mapping and current world state; it classifies whether a normal-language request is student-specific, then chooses and orders the allowed skills itself. No computed skill sequence is sent to the LLM. Student-specific plans are independently validated against the complete mapping before execution.
+
+Basic English command:
+
+```bash
+ros2 run ur3_llm_control command_cli \
+  'Put the red cube in zone B.'
+```
+
+Vietnamese command:
+
+```bash
+ros2 run ur3_llm_control command_cli \
+  'Hãy lấy khối màu vàng và đặt nó vào vùng A.'
+```
+
+Advanced student-specific request works without a special flag:
+
+```bash
+ros2 run ur3_llm_control command_cli \
+  'Arrange all objects according to my student ID.'
+```
+
+`--student-task` remains available as strict mode. It explicitly requires the configured student mapping regardless of the wording supplied:
 
 ```bash
 ros2 run ur3_llm_control command_cli --student-task \
   'Arrange all objects according to my student ID.'
 ```
-
-The explicit `--student-task` mode reads configuration, computes `XX` from the final two digits and `P = XX % 6` in Python, and supplies the mapping plus a feasible ordering as trusted context to the LLM. The LLM still returns the allowed skill plan. Validation independently checks the final arrangement.
 
 | P | zone_a | zone_b | zone_c |
 |---|---|---|---|
@@ -210,6 +238,22 @@ The explicit `--student-task` mode reads configuration, computes `XX` from the f
 | 5 | blue_cube | yellow_cube | red_cube |
 
 Occupied-zone strategy: deterministic safe reordering into currently empty destinations. Picking frees the previous zone; already-correct objects stay in place. A fully occupied permutation cycle has no legal free destination under this three-zone skill vocabulary, so the task is rejected **before motion**. No staging pose is implemented; restart the scene for such a rearrangement. This limitation is explicit and unit-tested.
+
+## Reset scene for repeated demos
+
+After a completed task, restore all cubes to their configured source poses without restarting Gazebo:
+
+```bash
+ros2 run ur3_llm_control command_cli --reset-scene
+```
+
+This deterministic demo utility moves the robot home through MoveIt, requires that no object is held, restores all three cube models to their configured source poses, synchronizes Gazebo and the MoveIt Planning Scene, and resets logical `object_locations` to `source`. It does not use the LLM and is not part of the task-plan skill vocabulary (`pick`, `place`, `home`). Reset is allowed only when the scene is healthy.
+
+Example repeated-demo flow:
+
+1. `ros2 run ur3_llm_control command_cli --student-task 'Arrange all objects according to my student ID.'`
+2. `ros2 run ur3_llm_control command_cli --reset-scene`
+3. `ros2 run ur3_llm_control command_cli 'Move the red cube to zone B.'`
 
 ## Tests and troubleshooting
 
@@ -234,10 +278,10 @@ python3 scripts/test_9router.py
 
 - Missing `ur_simulation_gz`: source its normal workspace installation; never source Assignment 1 as an application dependency.
 - Missing router variables: export them before launching the command server, then restart it.
-- `TODO` student identity: edit both real fields before the advanced demo.
 - Controller readiness failure: inspect `ros2 control list_controllers`, `/joint_states`, `/clock`, and competing old Gazebo servers. Do not start multiple stacks on the same ROS domain.
 - `PLANNING_FAILED`, `EXECUTION_FAILED`, `GRASP_FAILED`, or synchronization failure: execution stops; inspect the reported state and restart the complete simulation before another task. Never bypass a failed check.
 - ROS service timeout: the robot may still be executing. The command server blocks retries after uncertain execution. Stop/inspect the simulation first.
+- Start only one complete launch on a ROS domain. During normal use, `Ctrl+C` stops the launch; MoveIt Humble may print a known callback-group destruction segmentation fault during shutdown after successful operation. If a crash occurs before `READY` or while executing motion, inspect the first error above the shutdown messages.
 - `No 3D sensor plugin(s) defined for octomap updates`: expected without a camera; deterministic collision objects are still used.
 - External pytest plugin errors (`_pytest.scope`): use `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`. The CMake test already sets it.
 - Keep simulated clocks running. Paused/stopped Gazebo can make upstream MoveIt state waits stall; unpause or stop the full launch.

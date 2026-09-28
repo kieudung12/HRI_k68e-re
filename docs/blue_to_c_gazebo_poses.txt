@@ -1,0 +1,746 @@
+header {
+  stamp {
+    sec: 66
+    nsec: 192000000
+  }
+}
+pose {
+  name: "ground_plane"
+  id: 4
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "ur"
+  id: 10
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "table"
+  id: 39
+  position {
+    y: 0.29
+    z: 0.06
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "blue_cube"
+  id: 43
+  position {
+    x: -0.1
+    y: 0.24
+    z: 0.144
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "red_cube"
+  id: 47
+  position {
+    x: -0.1
+    y: 0.33
+    z: 0.103
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "yellow_cube"
+  id: 51
+  position {
+    y: 0.33
+    z: 0.103
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "zone_a"
+  id: 55
+  position {
+    x: 0.1
+    y: 0.24
+    z: 0.1215
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "zone_b"
+  id: 72
+  position {
+    y: 0.24
+    z: 0.1215
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "zone_c"
+  id: 92
+  position {
+    x: -0.1
+    y: 0.24
+    z: 0.1215
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "ground"
+  id: 5
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "base_link"
+  id: 11
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "shoulder_link"
+  id: 14
+  position {
+    z: 0.15185
+  }
+  orientation {
+    z: 0.9999999988580377
+    w: 4.77904239004056e-05
+  }
+}
+pose {
+  name: "upper_arm_link"
+  id: 17
+  position {
+    x: 7.7035565649695271e-34
+    y: -7.3956937849980995e-38
+    z: 0.15185
+  }
+  orientation {
+    x: -0.49997070293841889
+    y: 0.50002929544759189
+    z: 0.49998129414215359
+    w: 0.50001870505550627
+  }
+}
+pose {
+  name: "forearm_link"
+  id: 20
+  position {
+    x: 5.0629026177381654e-06
+    y: -4.3153650658534203e-10
+    z: 0.39539999994737635
+  }
+  orientation {
+    x: -0.49999057672071956
+    y: 0.50000942320423736
+    z: 0.499961870997954
+    w: 0.50003812599208208
+  }
+}
+pose {
+  name: "wrist_1_link"
+  id: 23
+  position {
+    x: 5.4210094531761013e-06
+    y: 0.13105000016607932
+    z: 0.60859999958728084
+  }
+  orientation {
+    x: -0.70710678097055069
+    y: 2.0199441214784215e-05
+    z: -4.6574283224739084e-05
+    w: 0.707106779580202
+  }
+}
+pose {
+  name: "wrist_2_link"
+  id: 26
+  position {
+    x: 2.2374835443487914e-06
+    y: 0.13105000046670706
+    z: 0.69394999952790859
+  }
+  orientation {
+    x: -1.0103032992254367e-09
+    y: -1.8649829636154545e-05
+    z: -4.0260062204851422e-05
+    w: 0.99999999901565562
+  }
+}
+pose {
+  name: "wrist_3_link"
+  id: 29
+  position {
+    x: 9.3417942627165736e-06
+    y: 0.22315000020249526
+    z: 0.69394999943428315
+  }
+  orientation {
+    x: -0.70710678121596027
+    y: -1.8901734232062991e-05
+    z: -7.5255785374256687e-05
+    w: 0.70710677689985069
+  }
+}
+pose {
+  name: "body"
+  id: 40
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "body"
+  id: 44
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "body"
+  id: 48
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "body"
+  id: 52
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "body"
+  id: 56
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "body"
+  id: 73
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "body"
+  id: 93
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "visual"
+  id: 6
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "sunVisual"
+  id: 9
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "base_link_inertia_visual"
+  id: 12
+  position {
+  }
+  orientation {
+    z: -1.224646799147353e-16
+    w: 1
+  }
+}
+pose {
+  name: "shoulder_link_visual"
+  id: 15
+  position {
+  }
+  orientation {
+    z: 1
+    w: 6.123233995736766e-17
+  }
+}
+pose {
+  name: "upper_arm_link_visual"
+  id: 18
+  position {
+    x: -7.7037197775489434e-34
+    z: 0.12
+  }
+  orientation {
+    x: 0.5
+    y: -0.49999999999999961
+    z: -0.5
+    w: 0.50000000000000033
+  }
+}
+pose {
+  name: "forearm_link_visual"
+  id: 21
+  position {
+    z: 0.026999999999999958
+  }
+  orientation {
+    x: 0.5
+    y: -0.49999999999999961
+    z: -0.5
+    w: 0.50000000000000033
+  }
+}
+pose {
+  name: "wrist_1_link_visual"
+  id: 24
+  position {
+    y: -2.7755575615628914e-17
+    z: -0.104
+  }
+  orientation {
+    x: 0.70710678118654724
+    w: 0.70710678118654779
+  }
+}
+pose {
+  name: "wrist_2_link_visual"
+  id: 27
+  position {
+    y: -2.7755575615628914e-17
+    z: -0.08535
+  }
+  orientation {
+    z: -2.57588927379886e-36
+    w: 1
+  }
+}
+pose {
+  name: "wrist_3_link_visual"
+  id: 30
+  position {
+    z: -0.092099999999999974
+  }
+  orientation {
+    x: 0.70710678118654724
+    y: 4.3578819960526217e-33
+    z: 4.3578819960526251e-33
+    w: 0.70710678118654779
+  }
+}
+pose {
+  name: "visual"
+  id: 41
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "visual"
+  id: 45
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "visual"
+  id: 49
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "visual"
+  id: 53
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_pedestal"
+  id: 57
+  position {
+    z: -0.02075
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_floor"
+  id: 58
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_front"
+  id: 59
+  position {
+    y: -0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_back"
+  id: 60
+  position {
+    y: 0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_left"
+  id: 61
+  position {
+    x: -0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_right"
+  id: 62
+  position {
+    x: 0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_left"
+  id: 63
+  position {
+    x: -0.012
+    z: 0.0022
+  }
+  orientation {
+    z: -0.14943813247359924
+    w: 0.98877107793604235
+  }
+}
+pose {
+  name: "label_right"
+  id: 64
+  position {
+    x: 0.012
+    z: 0.0022
+  }
+  orientation {
+    z: 0.14943813247359924
+    w: 0.98877107793604235
+  }
+}
+pose {
+  name: "label_cross"
+  id: 65
+  position {
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_pedestal"
+  id: 74
+  position {
+    z: -0.02075
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_floor"
+  id: 75
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_front"
+  id: 76
+  position {
+    y: -0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_back"
+  id: 77
+  position {
+    y: 0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_left"
+  id: 78
+  position {
+    x: -0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_right"
+  id: 79
+  position {
+    x: 0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_stem"
+  id: 80
+  position {
+    x: -0.014
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_top"
+  id: 81
+  position {
+    x: -0.003
+    y: 0.017
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_mid"
+  id: 82
+  position {
+    x: -0.003
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_bottom"
+  id: 83
+  position {
+    x: -0.003
+    y: -0.017
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_upper_end"
+  id: 84
+  position {
+    x: 0.008
+    y: 0.009
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_lower_end"
+  id: 85
+  position {
+    x: 0.008
+    y: -0.009
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_pedestal"
+  id: 94
+  position {
+    z: -0.02075
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_floor"
+  id: 95
+  position {
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_front"
+  id: 96
+  position {
+    y: -0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_back"
+  id: 97
+  position {
+    y: 0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_left"
+  id: 98
+  position {
+    x: -0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "tray_right"
+  id: 99
+  position {
+    x: 0.042
+    z: 0.021
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_left"
+  id: 100
+  position {
+    x: -0.01
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_top"
+  id: 101
+  position {
+    y: 0.017
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "label_bottom"
+  id: 102
+  position {
+    y: -0.017
+    z: 0.0022
+  }
+  orientation {
+    w: 1
+  }
+}
+pose {
+  name: "sun"
+  id: 8
+  position {
+    z: 10
+  }
+  orientation {
+    w: 1
+  }
+}

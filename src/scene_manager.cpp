@@ -25,7 +25,11 @@ SceneManager::SceneManager(rclcpp::Node::SharedPtr io,const std::string& path,co
   auto cfg=YAML::LoadFile(path);
   if (cfg["frame"].as<std::string>()!=frame_) throw std::runtime_error("Scene frame differs from actual planning frame");
   world_=cfg["world"].as<std::string>();size_=cfg["cube_size"].as<double>();
+  tray_size_=cfg["tray"]["outer_size"].as<double>();
+  tray_elevation_=cfg["tray"]["elevation"].as<double>();
+  tray_wall_height_=cfg["tray"]["wall_height"].as<double>();
   for(const auto& entry:cfg["objects"]) objects_[entry.first.as<std::string>()]=poseOf(entry.second);
+  source_objects_=objects_;
   for(const auto& entry:cfg["zones"]) zones_[entry.first.as<std::string>()]=poseOf(entry.second);
   if (!scene_.getObjects({"table","red_cube","yellow_cube","blue_cube"}).empty() || !scene_.getAttachedObjects().empty())
     throw std::runtime_error("Scene already initialized: restart the complete simulation to avoid resetting object state");
@@ -39,8 +43,23 @@ SceneManager::SceneManager(rclcpp::Node::SharedPtr io,const std::string& path,co
     spawn(name,p,{size_,size_,size_},colors.at(name),true);
   }
   for(const auto& [name,p]:zones_) {
-    auto marker=p;marker.position.z=table_pose.position.z+table_size[2]/2.+0.001;
-    spawn(name,marker,{0.065,0.065,0.001},"0.1 0.8 0.3 0.6",false);
+    auto marker=p;
+    marker.position.z=table_pose.position.z+table_size[2]/2.+tray_elevation_+0.0015;
+    const char label=name=="zone_a"?'A':name=="zone_b"?'B':'C';
+    spawnZone(name,marker,label);
+    const double wall=0.006,edge=(tray_size_-wall)/2.;
+    const double stand=tray_elevation_+0.0015;
+    auto add=[&](const std::string& suffix,double x,double y,double z,
+                 double sx,double sy,double sz) {
+      auto p=marker;p.position.x+=x;p.position.y+=y;p.position.z+=z;
+      collisions.push_back(box(name+suffix,p,{sx,sy,sz}));
+    };
+    add("_pedestal",0,0,-stand/2.,tray_size_,tray_size_,stand);
+    add("_floor",0,0,0,tray_size_,tray_size_,0.003);
+    add("_front",0,-edge,tray_wall_height_/2.,tray_size_,wall,tray_wall_height_);
+    add("_back",0,edge,tray_wall_height_/2.,tray_size_,wall,tray_wall_height_);
+    add("_left",-edge,0,tray_wall_height_/2.,wall,tray_size_-2*wall,tray_wall_height_);
+    add("_right",edge,0,tray_wall_height_/2.,wall,tray_size_-2*wall,tray_wall_height_);
   }
   if(!scene_.applyCollisionObjects(collisions)) throw std::runtime_error("Cannot apply collision scene");
   for(const auto& [name,p]:objects_) if(!setPose(name,p)) throw std::runtime_error("Gazebo object synchronization failed at startup");
@@ -50,6 +69,53 @@ SceneManager::SceneManager(rclcpp::Node::SharedPtr io,const std::string& path,co
 SceneManager::~SceneManager(){running_=false;if(worker_.joinable())worker_.join();}
 geometry_msgs::msg::Pose SceneManager::objectPose(const std::string& object) const{return objects_.at(object);}
 geometry_msgs::msg::Pose SceneManager::zonePose(const std::string& zone) const{return zones_.at(zone);}
+geometry_msgs::msg::Pose SceneManager::toolPoseForObject(const geometry_msgs::msg::Pose& pose){
+  std::lock_guard<std::mutex> lock(mutex_);
+  if(held_.empty())throw std::runtime_error("No attached object for placement transform");
+  return poseOf(eigen(pose)*offset_.inverse());
+}
+bool SceneManager::resetObjects(){
+  std::lock_guard<std::mutex> lock(mutex_);
+  if(!held_.empty() || !scene_.getAttachedObjects().empty())return false;
+
+  std::vector<std::string> moved;
+  auto rollbackGazebo=[&](){
+    bool ok=true;
+    for(const auto& name:moved)ok=setPose(name,objects_.at(name))&&ok;
+    if(!ok)healthy_=false;
+    return ok;
+  };
+  for(const auto& [name,pose]:source_objects_){
+    // A timed-out Gazebo response can still mean the pose changed. Include the
+    // current object in rollback before issuing the request.
+    moved.push_back(name);
+    if(!setPose(name,pose)){
+      rollbackGazebo();
+      return false;
+    }
+  }
+
+  std::vector<moveit_msgs::msg::CollisionObject> updates;
+  for(const auto& [name,pose]:source_objects_)updates.push_back(box(name,pose,{size_,size_,size_}));
+  if(!scene_.applyCollisionObjects(updates)){
+    rollbackGazebo();
+    return false;
+  }
+  const auto world=scene_.getObjects({"red_cube","yellow_cube","blue_cube"});
+  for(const auto& [name,pose]:source_objects_){
+    const auto it=world.find(name);
+    if(it==world.end() ||
+       (Eigen::Vector3d(it->second.pose.position.x,it->second.pose.position.y,it->second.pose.position.z)-
+        Eigen::Vector3d(pose.position.x,pose.position.y,pose.position.z)).norm()>1e-5){
+      healthy_=false;
+      RCLCPP_ERROR(io_->get_logger(),"Planning scene did not reset %s to its source pose",name.c_str());
+      return false;
+    }
+  }
+  objects_=source_objects_;
+  RCLCPP_INFO(io_->get_logger(),"All cubes reset to source in Gazebo and MoveIt without restarting simulation");
+  return true;
+}
 moveit_msgs::msg::CollisionObject SceneManager::box(const std::string& name,const geometry_msgs::msg::Pose& pose,const std::vector<double>& size) const {
   moveit_msgs::msg::CollisionObject out;out.header.frame_id=frame_;out.id=name;out.operation=out.ADD;
   shape_msgs::msg::SolidPrimitive primitive;primitive.type=primitive.BOX;primitive.dimensions.assign(size.begin(),size.end());
@@ -63,6 +129,54 @@ void SceneManager::spawn(const std::string& name,const geometry_msgs::msg::Pose&
   ignition::msgs::EntityFactory request;request.set_sdf(sdf.str());request.set_allow_renaming(false);
   ignition::msgs::Boolean response;bool result=false;
   if(!gz_.Request("/world/"+world_+"/create",request,5000,response,result)||!result||!response.data())throw std::runtime_error("Gazebo create failed for "+name+"; check IGN_PARTITION");
+  std::this_thread::sleep_for(100ms);
+}
+void SceneManager::spawnZone(const std::string& name,const geometry_msgs::msg::Pose& pose,char label){
+  // Raised trays share their dimensions with the MoveIt collision boxes.
+  std::ostringstream sdf;
+  sdf<<"<sdf version='1.7'><model name='"<<name<<"'><static>true</static><pose>"
+     <<pose.position.x<<" "<<pose.position.y<<" "<<pose.position.z<<" 0 0 0</pose><link name='body'>";
+  auto visual=[&](const std::string& n,double x,double y,double z,double sx,double sy,double sz,double yaw,const std::string& color){
+    if(n.rfind("tray_",0)==0)
+      sdf<<"<collision name='"<<n<<"_collision'><pose>"<<x<<" "<<y<<" "<<z<<" 0 0 "<<yaw<<"</pose>"
+         <<"<geometry><box><size>"<<sx<<" "<<sy<<" "<<sz<<"</size></box></geometry></collision>";
+    sdf<<"<visual name='"<<n<<"'><pose>"<<x<<" "<<y<<" "<<z<<" 0 0 "<<yaw<<"</pose>"
+       <<"<geometry><box><size>"<<sx<<" "<<sy<<" "<<sz<<"</size></box></geometry>"
+       <<"<material><ambient>"<<color<<"</ambient><diffuse>"<<color<<"</diffuse></material></visual>";
+  };
+  const std::string tray="0.42 0.42 0.42 1";
+  const double wall=0.006,half=tray_size_/2.,wall_center=half-wall/2.;
+  const double stand_height=tray_elevation_+0.0015;
+  // The same six boxes are added to MoveIt's collision scene at startup.
+  visual("tray_pedestal",0,0,-stand_height/2.,tray_size_,tray_size_,stand_height,0,tray);
+  visual("tray_floor",0,0,0,tray_size_,tray_size_,0.003,0,tray);
+  visual("tray_front",0,-wall_center,tray_wall_height_/2.,tray_size_,wall,tray_wall_height_,0,tray);
+  visual("tray_back",0,wall_center,tray_wall_height_/2.,tray_size_,wall,tray_wall_height_,0,tray);
+  visual("tray_left",-wall_center,0,tray_wall_height_/2.,wall,tray_size_-2*wall,tray_wall_height_,0,tray);
+  visual("tray_right",wall_center,0,tray_wall_height_/2.,wall,tray_size_-2*wall,tray_wall_height_,0,tray);
+  const std::string ink="0.04 0.04 0.04 1";
+  const double z=0.0022;
+  if(label=='A') {
+    visual("label_left",-0.012,0,z,0.006,0.038,0.001,-0.30,ink);
+    visual("label_right",0.012,0,z,0.006,0.038,0.001,0.30,ink);
+    visual("label_cross",0,0,z,0.024,0.005,0.001,0,ink);
+  } else if(label=='B') {
+    visual("label_stem",-0.014,0,z,0.006,0.040,0.001,0,ink);
+    visual("label_top",-0.003,0.017,z,0.022,0.005,0.001,0,ink);
+    visual("label_mid",-0.003,0,z,0.022,0.005,0.001,0,ink);
+    visual("label_bottom",-0.003,-0.017,z,0.022,0.005,0.001,0,ink);
+    visual("label_upper_end",0.008,0.009,z,0.005,0.014,0.001,0,ink);
+    visual("label_lower_end",0.008,-0.009,z,0.005,0.014,0.001,0,ink);
+  } else {
+    visual("label_left",-0.010,0,z,0.006,0.040,0.001,0,ink);
+    visual("label_top",0,0.017,z,0.025,0.005,0.001,0,ink);
+    visual("label_bottom",0,-0.017,z,0.025,0.005,0.001,0,ink);
+  }
+  sdf<<"</link></model></sdf>";
+  ignition::msgs::EntityFactory request;request.set_sdf(sdf.str());request.set_allow_renaming(false);
+  ignition::msgs::Boolean response;bool result=false;
+  if(!gz_.Request("/world/"+world_+"/create",request,5000,response,result)||!result||!response.data())
+    throw std::runtime_error("Gazebo create failed for "+name+"; check IGN_PARTITION");
   std::this_thread::sleep_for(100ms);
 }
 bool SceneManager::setPose(const std::string& name,const geometry_msgs::msg::Pose& p){
@@ -93,6 +207,10 @@ bool SceneManager::attach(const std::string& object){
 bool SceneManager::detach(const std::string& object,const geometry_msgs::msg::Pose& pose){
   std::lock_guard<std::mutex> lock(mutex_);
   if(held_!=object)return false;
+  const auto actual=toolTransform()*offset_;
+  if((actual.translation()-eigen(pose).translation()).norm()>0.005 ||
+     Eigen::Quaterniond(actual.rotation()).angularDistance(Eigen::Quaterniond(eigen(pose).rotation()))>0.05)
+    return false;
   moveit_msgs::msg::PlanningScene diff;diff.is_diff=true;diff.robot_state.is_diff=true;
   moveit_msgs::msg::AttachedCollisionObject remove;remove.link_name=eef_;remove.object.id=object;remove.object.operation=remove.object.REMOVE;
   diff.robot_state.attached_collision_objects.push_back(remove);diff.world.collision_objects.push_back(box(object,pose,{size_,size_,size_}));

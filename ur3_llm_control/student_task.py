@@ -5,6 +5,22 @@ from .task_validator import OBJECTS, ZONES, ValidationError
 
 MAPPINGS = tuple(dict(zip(ZONES, order)) for order in permutations(OBJECTS))
 
+def build_trusted_context(state, student=None):
+    """Expose authoritative state and optional mapping, never a skill sequence."""
+    context = {
+        "held_object": state.held_object,
+        "object_locations": dict(state.object_locations),
+        "zone_occupancy": dict(state.zone_occupancy),
+    }
+    if student is not None:
+        xx, permutation, mapping = student
+        context["student"] = {
+            "XX": xx,
+            "P": permutation,
+            "required_mapping": dict(mapping),
+        }
+    return context
+
 def student_mapping(student_id):
     value = str(student_id).strip()
     if not re.fullmatch(r"[0-9]{2,}", value):

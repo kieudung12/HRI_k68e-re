@@ -7,7 +7,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/ExecuteSkill.srv" "srv/GetState.srv" "srv/ExecuteCommand.srv")
+  "srv/ExecuteSkill.srv" "srv/GetState.srv" "srv/ExecuteCommand.srv" "srv/ResetScene.srv")
 # rosidl installs the generated Python package. Install our modules into that
 # same package without a second ament_python_install_package target.
 ament_get_python_install_dir(PYTHON_INSTALL_DIR)
@@ -15,6 +15,7 @@ install(DIRECTORY ur3_llm_control/ DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_N
   FILES_MATCHING PATTERN "*.py")
 install(DIRECTORY launch config prompt worlds docs DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS scripts/controller_ready scripts/spawn_guard scripts/command_cli scripts/command_server scripts/check_scene scripts/robot_smoke_test scripts/mapping_smoke_test scripts/planner_integration_test scripts/test_9router.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/all_pick_place_test scripts/run_pick_place_suite DESTINATION lib/${PROJECT_NAME})
 if(BUILD_TESTING)
   set(ENV{PYTEST_DISABLE_PLUGIN_AUTOLOAD} "1")
   find_package(ament_cmake_pytest REQUIRED)

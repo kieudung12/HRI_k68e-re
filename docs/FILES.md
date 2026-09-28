@@ -2,7 +2,7 @@
 
 ## Created
 
-49 new files in Assignment 2:
+Project-created files in Assignment 2:
 
 - [.gitignore](../.gitignore)
 - [CMakeLists.txt](../CMakeLists.txt)
@@ -10,12 +10,19 @@
 - [PROJECT_STATUS.md](../PROJECT_STATUS.md)
 - [README.md](../README.md)
 - [config/basic_plan.json](../config/basic_plan.json)
+- [config/blue_to_c_plan.json](../config/blue_to_c_plan.json)
 - [config/robot_skills.yaml](../config/robot_skills.yaml)
 - [config/scene.yaml](../config/scene.yaml)
 - [config/student_config.yaml](../config/student_config.yaml)
 - [config/ur_controllers.yaml](../config/ur_controllers.yaml)
 - [docs/FILES.md](../docs/FILES.md)
+- [docs/PRESENTATION_GUIDE.md](../docs/PRESENTATION_GUIDE.md)
 - [docs/VERIFICATION.md](../docs/VERIFICATION.md)
+- [docs/pick_place_verified.json](../docs/pick_place_verified.json)
+- [docs/blue_to_c_verified.txt](../docs/blue_to_c_verified.txt)
+- [docs/scene_audit_verified.txt](../docs/scene_audit_verified.txt)
+- [docs/reset_scene_verified.txt](../docs/reset_scene_verified.txt)
+- [docs/blue_to_c_gazebo_poses.txt](../docs/blue_to_c_gazebo_poses.txt)
 - [docs/basic_pipeline.txt](../docs/basic_pipeline.txt)
 - [docs/gazebo_demo.png](../docs/gazebo_demo.png)
 - [docs/gazebo_final_poses.json](../docs/gazebo_final_poses.json)
@@ -27,6 +34,8 @@
 - [package.xml](../package.xml)
 - [prompt/planner_prompt.txt](../prompt/planner_prompt.txt)
 - [scripts/check_scene](../scripts/check_scene)
+- [scripts/all_pick_place_test](../scripts/all_pick_place_test)
+- [scripts/run_pick_place_suite](../scripts/run_pick_place_suite)
 - [scripts/command_cli](../scripts/command_cli)
 - [scripts/command_server](../scripts/command_server)
 - [scripts/controller_ready](../scripts/controller_ready)
@@ -39,8 +48,10 @@
 - [srv/ExecuteCommand.srv](../srv/ExecuteCommand.srv)
 - [srv/ExecuteSkill.srv](../srv/ExecuteSkill.srv)
 - [srv/GetState.srv](../srv/GetState.srv)
+- [srv/ResetScene.srv](../srv/ResetScene.srv)
 - [test/test_executor.py](../test/test_executor.py)
 - [test/test_planner.py](../test/test_planner.py)
+- [test/test_request_policy.py](../test/test_request_policy.py)
 - [test/test_student_task.py](../test/test_student_task.py)
 - [test/test_validator.py](../test/test_validator.py)
 - [ur3_llm_control/__init__.py](../ur3_llm_control/__init__.py)
@@ -48,6 +59,7 @@
 - [ur3_llm_control/command_server.py](../ur3_llm_control/command_server.py)
 - [ur3_llm_control/controller_ready.py](../ur3_llm_control/controller_ready.py)
 - [ur3_llm_control/llm_planner.py](../ur3_llm_control/llm_planner.py)
+- [ur3_llm_control/request_policy.py](../ur3_llm_control/request_policy.py)
 - [ur3_llm_control/ros_backend.py](../ur3_llm_control/ros_backend.py)
 - [ur3_llm_control/skill_executor.py](../ur3_llm_control/skill_executor.py)
 - [ur3_llm_control/student_task.py](../ur3_llm_control/student_task.py)
@@ -56,7 +68,7 @@
 
 ## Existing files modified
 
-None. The existing [scripts/test_9router.py](../scripts/test_9router.py) is preserved byte-for-byte, including its original trailing blank line. Git whitespace checking excludes that unchanged diagnostic; all newly written text passes.
+[config/student_config.yaml](../config/student_config.yaml) contains the identity entered by the user: Kieu Minh Dung, 23020729. It is preserved as supplied. The existing [scripts/test_9router.py](../scripts/test_9router.py) is preserved byte-for-byte, including its original trailing blank line. Git whitespace checking excludes that unchanged diagnostic; all newly written text passes.
 
 ## Assignment 1 reuse
 

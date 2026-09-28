@@ -21,6 +21,9 @@ def test_valid_basic():
  {"plan":[{"skill":["pick"]}]}, {"plan":[{"skill":"pick","object":{}}]},
  {"plan":[{"skill":"pick","object":"red_cube"}]},
  {"plan":[{"skill":"home"}],"code":"bad"},
+ {"plan":[{"skill":"pick","object":"red_cube"},{"skill":"place","object":"red_cube","zone":"zone_b"}]},
+ {"plan":[{"skill":"home"},{"skill":"pick","object":"red_cube"},{"skill":"place","object":"red_cube","zone":"zone_b"},{"skill":"home"}]},
+ {"plan":[{"skill":"pick","object":"red_cube"},{"skill":"place","object":"red_cube","zone":"zone_b"},{"skill":"home"},{"skill":"home"}]},
  {"plan":[{"skill":"pick","object":"red_cube"},{"skill":"home"}]},
 ])
 def test_invalid(data):
@@ -47,3 +50,11 @@ def test_faulted():
 ])
 def test_inconsistent_state(state):
     with pytest.raises(ValidationError):PlanValidator().validate(GOOD,state)
+
+
+def test_home_only_is_valid():
+    assert PlanValidator().validate({"plan":[{"skill":"home"}]}).steps == ({"skill":"home"},)
+
+def test_home_must_be_the_last_step():
+    with pytest.raises(ValidationError,match="final"):
+        PlanValidator().validate({"plan":[{"skill":"home"},{"skill":"home"}]})

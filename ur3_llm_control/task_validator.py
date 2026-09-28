@@ -54,6 +54,8 @@ class PlanValidator:
         steps = data["plan"]
         if type(steps) is not list or not 1 <= len(steps) <= 40:
             raise ValidationError("plan must be a nonempty list of at most 40 steps")
+        if type(steps[-1]) is not dict or steps[-1] != {"skill": "home"}:
+            raise ValidationError("plan must end with exactly home()")
         for i, step in enumerate(steps, 1):
             def reject(message):
                 raise ValidationError(f"Step {i}: {message}")
@@ -65,6 +67,8 @@ class PlanValidator:
             fields = {"skill"} | ({"object"} if skill != "home" else set()) | ({"zone"} if skill == "place" else set())
             if set(step) != fields:
                 reject("missing or unexpected arguments")
+            if skill == "home" and i != len(steps):
+                reject("home() must be the final skill")
             obj = step.get("object")
             if skill != "home" and obj not in OBJECTS:
                 reject("unknown object")

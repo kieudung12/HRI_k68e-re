@@ -3,13 +3,20 @@ frame: world
 world: assignment2
 cube_size: 0.04
 table:
-  center: [0.30, 0.0, 0.10]
-  size: [0.46, 0.58, 0.04]
+  # Shift the work surface toward the UR's forward reach (+Y).
+  center: [0.0, 0.29, 0.06]
+  size: [0.40, 0.36, 0.04]
 objects:
-  red_cube: [0.20, 0.17, 0.143]
-  yellow_cube: [0.30, 0.17, 0.143]
-  blue_cube: [0.40, 0.17, 0.143]
+  red_cube: [-0.10, 0.33, 0.103]
+  yellow_cube: [0.0, 0.33, 0.103]
+  blue_cube: [0.10, 0.33, 0.103]
 zones:
-  zone_a: [0.20, -0.17, 0.143]
-  zone_b: [0.30, -0.17, 0.143]
-  zone_c: [0.40, -0.17, 0.143]
+  # ID 23020729 maps blue->A, yellow->B, red->C. Elevated trays give the
+  # carried cube more clearance above the table during transfer and release.
+  zone_a: [0.10, 0.24, 0.144]
+  zone_b: [0.0, 0.24, 0.144]
+  zone_c: [-0.10, 0.24, 0.144]
+tray:
+  outer_size: 0.09
+  elevation: 0.04
+  wall_height: 0.042

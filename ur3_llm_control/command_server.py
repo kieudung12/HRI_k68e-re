@@ -11,7 +11,8 @@ from ament_index_python.packages import get_package_share_directory
 from ur3_llm_control.srv import ExecuteCommand
 from .llm_planner import LLMPlanner, strict_json
 from .task_validator import PlanValidator
-from .student_task import student_mapping, safe_order
+from .student_task import student_mapping, build_trusted_context
+from .request_policy import classify_student_request
 from .skill_executor import SkillExecutor
 from .ros_backend import ROSBackend
 
@@ -33,29 +34,49 @@ class CommandServer(Node):
             if self.uncertain:
                 raise RuntimeError("Previous transport failure left execution uncertain; inspect and restart the application")
             state=self.backend.state()
+            context=build_trusted_context(state)
             mapping=None
-            context={"held_object":state.held_object,"object_locations":state.object_locations,
-                     "zone_occupancy":state.zone_occupancy}
-            if request.student_task:
+            student_context=None
+            config_error=None
+            try:
                 config=yaml.safe_load(Path(self.get_parameter("student_config").value).read_text())
-                if not config.get("student_name") or config["student_name"]=="TODO":
-                    raise ValueError("Fill student_name and student_id in config/student_config.yaml before demo")
-                xx,p,mapping=student_mapping(config["student_id"])
-                feasible=safe_order(mapping,state)
-                context.update({"XX":xx,"P":p,"required_mapping":mapping,"feasible_skill_order":feasible["plan"]})
+                if not isinstance(config,dict) or not config.get("student_name") or config["student_name"]=="TODO":
+                    raise ValueError("student_config.yaml must contain the student's name and ID")
+                xx,p,mapping=student_mapping(config.get("student_id"))
+                student_context={"XX":xx,"P":p,"required_mapping":mapping}
+            except (OSError, TypeError, ValueError, yaml.YAMLError) as exc:
+                config_error=str(exc)
+            if request.student_task and mapping is None:
+                raise ValueError("Strict student-task mode requires a valid config/student_config.yaml: " + (config_error or "invalid identity"))
             if request.plan_json:
                 if request.command:
                     raise ValueError("Use either a structured plan or a natural-language command")
                 plan=strict_json(request.plan_json)
+                student_specific=bool(request.student_task)
+                if student_specific and mapping is None:
+                    raise ValueError("Strict student-task mode requires a valid config/student_config.yaml: " + (config_error or "invalid identity"))
             else:
-                plan=LLMPlanner(self.share/"prompt/planner_prompt.txt").plan(request.command,context)
-            validated=PlanValidator().validate(plan,state,mapping)
-            report={"command":request.command,"plan":plan,"validation":"VALID","required_mapping":mapping}
+                planner=LLMPlanner(self.share/"prompt/planner_prompt.txt")
+                student_specific=classify_student_request(
+                    planner, request.command, request.student_task, mapping, config_error)
+                # Do not show the student mapping while planning an ordinary
+                # object-to-zone command.  The mapping is authoritative only
+                # after the intent classifier has identified a student task;
+                # exposing it for every request makes the model reinterpret a
+                # direct command as a mapping conflict and answer with prose.
+                plan_context = (build_trusted_context(state,(xx,p,mapping))
+                                if student_specific and student_context is not None
+                                else context)
+                plan=planner.plan(request.command,plan_context)
+            enforced_mapping=mapping if student_specific else None
+            validated=PlanValidator().validate(plan,state,enforced_mapping)
+            report={"command":request.command,"plan":plan,"validation":"VALID",
+                    "student_mapping_enforced":student_specific,"required_mapping":enforced_mapping}
             if request.dry_run:
                 report.update({"status":"VALIDATED_ONLY","predicted_state":validated.final_state.__dict__})
             else:
                 try:
-                    report.update(SkillExecutor(self.backend).execute(plan,mapping,
+                    report.update(SkillExecutor(self.backend).execute(plan,enforced_mapping,
                         lambda step,status:self.get_logger().info(f"{step}: {status}")))
                 except RuntimeError:
                     self.uncertain=True

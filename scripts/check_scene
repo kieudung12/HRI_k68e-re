@@ -44,7 +44,8 @@ try:
     ik.group_name="ur_manipulator";ik.ik_link_name=state["end_effector_link"]
     ik.avoid_collisions=False;ik.timeout.sec=2;ik.robot_state=seed
     ik.pose_stamped.header.frame_id=cfg["frame"]
-    ik.pose_stamped.pose.position.x=0.30;ik.pose_stamped.pose.position.z=0.09
+    (ik.pose_stamped.pose.position.x,ik.pose_stamped.pose.position.y,
+     ik.pose_stamped.pose.position.z)=cfg['table']['center']
     ik.pose_stamped.pose.orientation.x=1.0;ik.pose_stamped.pose.orientation.w=0.0
     probe=call(GetPositionIK,"/compute_ik",req)
     blocked=False
