@@ -16,12 +16,6 @@ install(DIRECTORY ur3_llm_control/ DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_N
 install(DIRECTORY launch config prompt worlds docs DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS scripts/controller_ready scripts/spawn_guard scripts/command_cli scripts/command_server scripts/check_scene scripts/robot_smoke_test scripts/mapping_smoke_test scripts/planner_integration_test scripts/test_9router.py DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS scripts/all_pick_place_test scripts/run_pick_place_suite DESTINATION lib/${PROJECT_NAME})
-if(BUILD_TESTING)
-  set(ENV{PYTEST_DISABLE_PLUGIN_AUTOLOAD} "1")
-  find_package(ament_cmake_pytest REQUIRED)
-  ament_add_pytest_test(offline test TIMEOUT 60 WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} PYTEST_DISABLE_PLUGIN_AUTOLOAD=1)
-endif()
 find_package(rclcpp REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(nlohmann_json REQUIRED)

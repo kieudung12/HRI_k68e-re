@@ -1,21 +1,23 @@
 # Final submission verification
 
-## Current review result (29 September 2026)
+## Recorded review results before removing the unit-test sources (29 September 2026)
 
 The following sections distinguish offline/deterministic robot testing from live language-model and identity-specific behavior. Reset was tested on a fresh stack, including independent Gazebo and MoveIt queries and a second task without restarting Gazebo.
 
 | Area | Current result | Scope |
 |---|---|---|
-| Deterministic unit tests | PASS: 90 cases | `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q test`; no router or robot required |
-| Python compile check | PASS | `python3 -m compileall -q ur3_llm_control launch test scripts` |
+| Deterministic unit tests | PASS at review time: 90 cases | Ran before the test source directory was removed from the submission |
+| Python compile check | PASS at review time | `python3 -m compileall -q ur3_llm_control launch test scripts` |
 | YAML/JSON parse | PASS: 10 files | All repository YAML/JSON configs and data parsed |
-| ROS build/test | PASS: 91 tests, zero failures/errors/skips | `colcon build --symlink-install`; `colcon test --packages-select ur3_llm_control`; `colcon test-result --verbose` |
+| ROS build/test | PASS at review time: 91 tests, zero failures/errors/skips | Ran before removing the pytest registration and test source directory |
 | Deterministic Gazebo/MoveIt motion | PASS | Six fresh scenes; pick/place matrix and invalid-plan rejection |
 | ResetScene build | PASS | ROS service interface, CLI and C++ node built |
 | ResetScene live runtime | PASS | [Fresh-stack reset test](reset_scene_verified.txt); Gazebo and MoveIt queried independently |
 | Post-reset second robot task | PASS | Blue source→zone C→home completed in the same Gazebo process; independent Gazebo/MoveIt readback |
 | Live 9Router English/Vietnamese/student planner | Requires user-side verification | Router variables are not configured in the review environment; no live result is claimed |
 | Natural-language robot tasks in Gazebo | Requires user-side verification | Do not infer these from structured `--plan-file` regression runs |
+
+After recording these results, the author requested removal of `test/` from the submitted repository. Its Python unit tests and pytest registration have been removed. A fresh `colcon build --symlink-install`, Python compile check for application/launch/scripts, and YAML/JSON parsing passed after that change; the repository no longer contains the unit-test suite.
 
 # Historical verification record
 

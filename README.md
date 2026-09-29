@@ -10,7 +10,7 @@
 | Motion planning | MoveIt 2 |
 | Branch nộp bài | [`assignments_2`](https://github.com/kieudung12/HRI_k68e-re/tree/assignments_2) |
 
-**Tài liệu nộp bài:** [Video demo](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing) · [Hướng dẫn trình bày](docs/PRESENTATION_GUIDE.md) · [Kết quả xác minh](docs/VERIFICATION.md)
+**Tài liệu nộp bài:** [Video demo](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing) · [Hướng dẫn trình bày](docs/PRESENTATION_GUIDE.md)
 
 ![UR3e trong Gazebo Fortress với bàn thao tác, các khối và khay A/B/C](docs/gazebo_demo.png)
 
@@ -125,14 +125,6 @@ CLI trình bày lệnh, kế hoạch, kết quả validation, trạng thái từ
 
 `home()` đưa robot về tư thế `up` đã cấu hình và là bước cuối bắt buộc theo hợp đồng plan của bài.
 
-### Plan dựng sẵn chỉ dành cho kiểm thử
-
-`config/basic_plan.json` và `config/blue_to_c_plan.json` chạy với `--plan-file` để kiểm tra pipeline ROS → validator → executor → robot bằng dữ liệu xác định. Các kiểm thử này **không gọi LLM** và không chứng minh khả năng hiểu câu lệnh. Demo ngôn ngữ tự nhiên chính thức phải chạy `command_cli` không kèm `--plan-file`, qua 9Router.
-
-```bash
-ros2 run ur3_llm_control command_cli --plan-file config/basic_plan.json
-```
-
 ## An toàn chuyển động và giới hạn mô phỏng
 
 MoveIt chịu trách nhiệm IK, lập kế hoạch và kiểm tra va chạm. Các đoạn Cartesian chỉ được thực thi khi đường đi đạt điều kiện đầy đủ và vượt kiểm tra joint jump. Executor dừng tại skill đầu tiên thất bại. Cấu hình ưu tiên đường đi ngắn, có kiểm tra va chạm; project không tuyên bố tối ưu quỹ đạo toàn cục.
@@ -151,20 +143,6 @@ ros2 run ur3_llm_control command_cli --reset-scene
 
 Đây là tiện ích reset xác định, không gọi LLM và không phải robot skill.
 
-## Kiểm thử và trạng thái
-
-Chạy kiểm thử offline và build bằng:
-
-```bash
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q test
-python3 -m compileall -q ur3_llm_control launch test scripts
-colcon build --symlink-install
-colcon test --packages-select ur3_llm_control
-colcon test-result --verbose
-```
-
-Kết quả review ngày 29-09-2026: **90 pytest pass**, build **1 package thành công**, và **91 colcon tests pass** với 0 errors, failures hoặc skipped. Kiểm thử chuyển động Gazebo/MoveIt được ghi riêng trong [docs/VERIFICATION.md](docs/VERIFICATION.md). Live test 9Router và task ngôn ngữ tự nhiên trên Gazebo chưa được xác minh trong môi trường review; không suy diễn kết quả đó từ test `--plan-file`.
-
 ## Tài liệu tham khảo kỹ thuật
 
 Các liên kết sau là tài liệu dự án chính thức dùng để tra cứu công nghệ nền; chúng không hàm ý mã nguồn bài tập là bản sao của các dự án đó.
@@ -179,7 +157,6 @@ Các liên kết sau là tài liệu dự án chính thức dùng để tra cứ
 ## Tài liệu và liên kết nộp bài
 
 - [Hướng dẫn trình bày](docs/PRESENTATION_GUIDE.md)
-- [Kết quả xác minh chi tiết](docs/VERIFICATION.md)
 - [Danh mục file dự án](docs/FILES.md)
 - [Mã nguồn trên GitHub — branch `assignments_2`](https://github.com/kieudung12/HRI_k68e-re/tree/assignments_2)
 - [Video demo](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing)

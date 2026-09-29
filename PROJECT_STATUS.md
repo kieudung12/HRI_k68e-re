@@ -5,7 +5,7 @@
 This is the authoritative submission status; milestone notes below are historical. The original UR3e / Gazebo Fortress / MoveIt architecture is retained. Configured identity: Kieu Minh Dung, ID 23020729 (`XX=29`, `P=5`); mapping: zone A=blue, zone B=yellow, zone C=red.
 
 - Motion regression: PASS — six fresh Gazebo runs, all 27 pick/place pairs and 44 expected invalid-request rejections; see [verification](docs/VERIFICATION.md).
-- Offline tests/build: PASS — 90 pytest cases; full colcon build passed; 91 colcon tests, zero errors/failures/skips.
+- Automated unit-test source has been removed from the submission at the user's request. The package build and runtime interfaces remain part of the deliverable.
 - ResetScene build/runtime: PASS. Independent Gazebo and MoveIt source-pose checks passed; a blue→zone C task then succeeded in the same Gazebo process. Evidence: [reset runtime record](docs/reset_scene_verified.txt).
 - Live 9Router English/Vietnamese tests and student-ID LLM-to-Gazebo task: requires user-side verification; the review shell has no `NINEROUTER_BASE_URL`, `NINEROUTER_API_KEY`, or `NINEROUTER_MODEL` configured.
 - Empty LLM plan is treated as a refusal and rejected before retry or robot execution. CLI plan and execution output share one formatter.
