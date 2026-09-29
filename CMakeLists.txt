@@ -14,7 +14,7 @@ ament_get_python_install_dir(PYTHON_INSTALL_DIR)
 install(DIRECTORY ur3_llm_control/ DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_NAME}
   FILES_MATCHING PATTERN "*.py")
 install(DIRECTORY launch config prompt worlds docs DESTINATION share/${PROJECT_NAME})
-install(PROGRAMS scripts/controller_ready scripts/spawn_guard scripts/command_cli scripts/command_server scripts/check_scene DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/controller_ready scripts/spawn_guard scripts/command_cli scripts/command_server DESTINATION lib/${PROJECT_NAME})
 find_package(rclcpp REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(nlohmann_json REQUIRED)

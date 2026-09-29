@@ -53,8 +53,19 @@ Các thành phần chính:
 
 Máy cần Ubuntu 22.04, ROS 2 Humble, MoveIt 2, Gazebo Fortress và workspace UR đã cài trong `~/ros2_ws`. Các phụ thuộc nền tảng này không được cài lại bởi package bài tập.
 
+Clone đúng branch nộp bài vào workspace:
+
 ```bash
-cd ~/HRI/ur3_LLM_b2
+mkdir -p ~/HRI
+cd ~/HRI
+git clone -b assignments_2 --single-branch \
+  https://github.com/kieudung12/HRI_k68e-re.git ur3_LLM_b2
+cd ur3_LLM_b2
+```
+
+Sau đó build package:
+
+```bash
 source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
 colcon build --symlink-install
