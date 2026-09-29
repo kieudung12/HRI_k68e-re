@@ -11,6 +11,7 @@ from ament_index_python.packages import get_package_share_directory
 from ur3_llm_control.srv import ExecuteCommand
 from .llm_planner import LLMPlanner, strict_json
 from .task_validator import PlanValidator
+from .planning import plan_and_validate
 from .student_task import student_mapping, build_trusted_context
 from .request_policy import classify_student_request
 from .skill_executor import SkillExecutor
@@ -38,6 +39,8 @@ class CommandServer(Node):
             mapping=None
             student_context=None
             config_error=None
+            llm_retried=False
+            validated=None
             try:
                 config=yaml.safe_load(Path(self.get_parameter("student_config").value).read_text())
                 if not isinstance(config,dict) or not config.get("student_name") or config["student_name"]=="TODO":
@@ -67,11 +70,19 @@ class CommandServer(Node):
                 plan_context = (build_trusted_context(state,(xx,p,mapping))
                                 if student_specific and student_context is not None
                                 else context)
-                plan=planner.plan(request.command,plan_context)
+                plan,validated,llm_retried=plan_and_validate(
+                    planner,request.command,plan_context,state,
+                    mapping if student_specific else None)
+                if llm_retried:
+                    self.get_logger().warning(
+                        "Initial LLM plan failed validation; one replacement plan was generated and validated")
             enforced_mapping=mapping if student_specific else None
-            validated=PlanValidator().validate(plan,state,enforced_mapping)
+            if validated is None:
+                validated=PlanValidator().validate(plan,state,enforced_mapping)
             report={"command":request.command,"plan":plan,"validation":"VALID",
                     "student_mapping_enforced":student_specific,"required_mapping":enforced_mapping}
+            if llm_retried:
+                report["llm_retried"]=True
             if request.dry_run:
                 report.update({"status":"VALIDATED_ONLY","predicted_state":validated.final_state.__dict__})
             else:

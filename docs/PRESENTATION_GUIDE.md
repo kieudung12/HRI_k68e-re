@@ -32,7 +32,7 @@ Khi thả, chương trình tính pose tool từ pose vật mong muốn và phép
 
 ## Kiểm tra kế hoạch trước khi chạy
 
-Validator xác nhận JSON chỉ có các skill và trường dữ liệu cho phép; vật và khay phải tồn tại; phải gắp trước khi đặt; chỉ đặt vật đang giữ; không đặt vào khay đã có vật; cuối kế hoạch phải có đúng một `home()`; và trạng thái robot không bị fault. Với bài sinh viên, trạng thái cuối phải khớp đủ mapping. Nếu kiểm tra thất bại, executor không bắt đầu chuyển động.
+Validator xác nhận JSON chỉ có các skill và trường dữ liệu cho phép; vật và khay phải tồn tại; phải gắp trước khi đặt; chỉ đặt vật đang giữ; không đặt vào khay đã có vật; cuối kế hoạch phải có đúng một `home()`; và trạng thái robot không bị fault. Với bài sinh viên, trạng thái cuối phải khớp đủ mapping. Nếu plan LLM đầu tiên không đạt, chương trình gửi lỗi validator về cho LLM để tạo lại một lần; không tự chèn hay sửa skill. Chỉ plan đã được validator chấp nhận mới được chuyển tới executor. Nếu lần thử lại vẫn không đạt, executor không bắt đầu chuyển động.
 
 Ví dụ lệnh cơ bản:
 

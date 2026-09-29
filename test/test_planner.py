@@ -43,6 +43,22 @@ def test_missing_final_home_is_not_appended():
     with pytest.raises(ValidationError,match="end with exactly home"):
         PlanValidator().validate(result)
 
+def test_revise_plan_resends_trusted_context_and_validator_error():
+    session=Mock()
+    session.post.return_value.json.return_value={"choices":[{"message":{"tool_calls":[
+        {"function":{"arguments":' {"plan":[{"skill":"home"}] } '}}
+    ]}}]}
+    p=LLMPlanner(PROMPT,ENV,session)
+    rejected={"plan":[{"skill":"pick","object":"red_cube"}]}
+    context={"object_locations":{"red_cube":"source"}}
+    result=p.revise_plan("Move red to B",context,rejected,"plan must end with exactly home()")
+    assert result == {"plan":[{"skill":"home"}]}
+    messages=session.post.call_args.kwargs["json"]["messages"]
+    assert messages[1]["content"].startswith("Trusted context:")
+    assert messages[2]["content"] == "Move red to B"
+    assert __import__("json").loads(messages[3]["content"]) == rejected
+    assert "plan must end with exactly home()" in messages[4]["content"]
+
 def test_empty_llm_plan_is_preserved_then_validator_rejects():
     p,s=planner({"choices":[{"message":{"tool_calls":[{"function":{"arguments":'{"plan":[]}'}}]}}]})
     result=p.plan("impossible request")

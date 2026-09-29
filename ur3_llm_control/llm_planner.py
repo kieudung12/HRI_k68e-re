@@ -133,3 +133,20 @@ class LLMPlanner:
         # Preserve the LLM's structured plan exactly. Schema and task semantics
         # belong to PlanValidator; never infer or append robot skills here.
         return self._request_json(messages, PLAN_TOOL)
+
+    def revise_plan(self, command, context, rejected_plan, validation_error):
+        """Ask the model once for a complete replacement after validator rejection."""
+        messages = [{"role": "system", "content": self.prompt}]
+        if context:
+            messages.append({"role": "system", "content": "Trusted context: " + json.dumps(context)})
+        messages.extend([
+            {"role": "user", "content": command},
+            {"role": "assistant", "content": json.dumps(rejected_plan, ensure_ascii=False)},
+            {"role": "user", "content": (
+                "A deterministic plan validator rejected your previous plan with this error: "
+                + validation_error + ". Return a complete replacement plan for the original "
+                "request and trusted state. Follow every planning rule, including exactly one "
+                "final home() step. Do not explain the error, do not return the rejected plan "
+                "unchanged, and do not assume any skill has executed.")},
+        ])
+        return self._request_json(messages, PLAN_TOOL)

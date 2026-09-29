@@ -58,6 +58,8 @@ def main():
                 arguments = ", ".join(step[k] for k in ("object", "zone") if k in step)
                 print(f"{i}. {step['skill']}({arguments})")
             print("\nVALIDATION\n" + report["validation"])
+            if report.get("llm_retried"):
+                print("NOTE\nThe first LLM plan was rejected; a replacement plan passed validation.")
         if "results" in report:
             print("\nEXECUTION")
             for entry in report["results"]:
