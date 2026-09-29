@@ -12,9 +12,13 @@
 
 **Video demo:** [Xem video trên Google Drive](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing)
 
-![UR3e trong Gazebo Fortress với bàn thao tác, các khối và khay A/B/C](assets/demo_gazebo_scene.png)
+![Kết quả thực thi lệnh tự nhiên trên CLI](assets/demo_terminal_success.png)
 
-*Ảnh chụp scene mô phỏng ở trạng thái khởi tạo. Ảnh minh họa bố trí Gazebo, không đại diện cho một lần chạy LLM trực tiếp.*
+*CLI hiển thị kế hoạch, validation và kết quả thành công của từng skill.*
+
+![UR3e trong Gazebo Fortress sau khi đặt red_cube vào Zone B](assets/demo_gazebo_red_zone_b.png)
+
+*Ảnh chụp sau khi lệnh tự nhiên hoàn thành; `zone_b` được chọn trong cây thực thể Gazebo.*
 
 ## Nhiệm vụ sinh viên
 
