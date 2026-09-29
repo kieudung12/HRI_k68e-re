@@ -16,7 +16,7 @@ flowchart LR
   F --> G[UR3e trong Gazebo]
 ```
 
-Có thể giải thích ngắn gọn: “LLM chỉ quyết định cần gọi skill nào. Validator kiểm tra kế hoạch. MoveIt mới tính chuyển động của robot.”
+Có thể giải thích ngắn gọn: “LLM chỉ quyết định cần gọi skill nào. Validator kiểm tra kế hoạch. MoveIt mới tính chuyển động của robot.” Demo câu tự nhiên chính thức đi qua 9Router; `--plan-file` chỉ dành cho regression/smoke test có kế hoạch dựng sẵn.
 
 ## Ba skill
 
@@ -24,7 +24,7 @@ Có thể giải thích ngắn gọn: “LLM chỉ quyết định cần gọi s
 - `pick(object)`: MoveIt đưa tool tới trên vật, hạ xuống, đánh dấu vật là đang được giữ, rồi rút tool lên.
 - `place(object, zone)`: đưa vật tới trên khay, hạ xuống, đánh dấu vật đã được đặt, rồi rút tool lên.
 
-Mô hình UR3e trong bài không có gripper thật. Việc gắp được mô phỏng bằng trạng thái attached trong MoveIt và đồng bộ pose khối trong Gazebo. Nên nói rõ đây là giả lập thao tác gắp, không phải mô phỏng lực kẹp.
+Mô hình UR3e trong bài không có physical gripper controller. Khi gắp, MoveIt tạo `moveit_msgs/AttachedCollisionObject` gắn cube vào `tool0`; pose cube trong Gazebo được đồng bộ theo TCP. Đây là virtual grasp để biểu diễn trạng thái gắp, không phải gripper vật lý hay mô phỏng lực kẹp.
 
 Khi giải thích bố trí bàn: phải xét cả thân robot và cổ tay, không chỉ điểm `tool0`. Với hướng tool đang dùng, `wrist_1` nằm thấp hơn tool khoảng 8,5 cm và lệch ngang 9,2 cm. Bàn mới cao 8 cm; hàng phôi ở y=33 cm, hàng khay ở y=24 cm; khoảng cách gắp giả lập là 15 cm. Các vị trí này giúp cổ tay đi qua phía trên các vật còn lại. Thành khay có collision geometry trong cả Gazebo và MoveIt.
 
@@ -32,7 +32,7 @@ Khi thả, chương trình tính pose tool từ pose vật mong muốn và phép
 
 ## Kiểm tra kế hoạch trước khi chạy
 
-Validator xác nhận JSON chỉ có các skill và trường dữ liệu cho phép; vật và khay phải tồn tại; phải gắp trước khi đặt; chỉ đặt vật đang giữ; không đặt vào khay đã có vật; cuối kế hoạch phải có đúng một `home()`; và trạng thái robot không bị fault. Với bài sinh viên, trạng thái cuối phải khớp đủ mapping. Nếu plan LLM không đạt, chương trình gửi lỗi validator về cho LLM tạo plan mới, tối đa hai lần; không tự chèn hay sửa skill. Chỉ plan đã được validator chấp nhận mới được chuyển tới executor. Nếu vẫn không đạt sau hai lần, executor không bắt đầu chuyển động.
+Validator xác nhận JSON chỉ có các skill và trường dữ liệu cho phép; vật và khay phải tồn tại; phải gắp trước khi đặt; chỉ đặt vật đang giữ; không đặt vào khay đã có vật; cuối kế hoạch phải có đúng một `home()`; và trạng thái robot không bị fault. Với bài sinh viên, trạng thái cuối phải khớp đủ mapping. Nếu plan LLM không đạt, chương trình có thể gửi lỗi validator về cho LLM tạo plan mới, tối đa hai lần; không tự chèn hay sửa skill. Plan rỗng `{"plan":[]}` là tín hiệu từ chối và bị trả lỗi ngay, không retry cùng phản hồi. Chỉ plan đã được validator chấp nhận mới được chuyển tới executor.
 
 Ví dụ lệnh cơ bản:
 
@@ -80,6 +80,8 @@ Khi kết quả là `VALIDATED_ONLY`, chạy bài thật:
 ```bash
 ros2 run ur3_llm_control command_cli --student-task
 ```
+
+Các file `config/basic_plan.json` và `config/blue_to_c_plan.json` chạy bằng `--plan-file` chỉ kiểm tra pipeline với plan có sẵn, không gọi LLM. Để trình bày nhận dạng ngôn ngữ, chạy một trong các câu tự nhiên ở trên mà không thêm `--plan-file`; launch server phải có ba biến môi trường 9Router.
 
 Một task chỉ nên chạy một lần trên mỗi trạng thái scene. Nếu skill lỗi và robot báo `faulted`, dừng rồi khởi động lại toàn bộ launch để tạo scene sạch.
 

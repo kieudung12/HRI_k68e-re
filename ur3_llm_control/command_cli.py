@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import rclpy
 from ur3_llm_control.srv import ExecuteCommand, ResetScene
+from .output_format import format_execution, format_plan
 
 
 def main():
@@ -45,7 +46,7 @@ def main():
         client = node.create_client(ExecuteCommand, "/llm/command")
         if not client.wait_for_service(timeout_sec=10):
             raise RuntimeError("/llm/command unavailable; launch application first")
-        print("USER COMMAND\n" + (command or "Structured test plan"), flush=True)
+        print("USER COMMAND:\n" + (command or "Structured test plan"), flush=True)
         future = client.call_async(request)
         rclpy.spin_until_future_complete(node, future, timeout_sec=1800)
         if not future.done():
@@ -53,20 +54,21 @@ def main():
         response = future.result()
         report = json.loads(response.report_json)
         if "plan" in report:
-            print("\nLLM PLAN" if command else "\nSTRUCTURED PLAN")
-            for i, step in enumerate(report["plan"]["plan"], 1):
-                arguments = ", ".join(step[k] for k in ("object", "zone") if k in step)
-                print(f"{i}. {step['skill']}({arguments})")
-            print("\nVALIDATION\n" + report["validation"])
+            title = "LLM PLAN:" if command else "STRUCTURED PLAN:"
+            print(f"\n{title}\n{format_plan(report['plan']['plan'])}")
+            print("\nVALIDATION:\n" + report["validation"])
             if report.get("llm_retried"):
-                print("NOTE\nThe first LLM plan was rejected; a replacement plan passed validation.")
+                print("\nNOTE: The first LLM plan was rejected; a replacement plan passed validation.")
         if "results" in report:
-            print("\nEXECUTION")
-            for entry in report["results"]:
-                print(f"{entry['step']} ........ {entry['status']}")
+            print("\nEXECUTION:\n" + format_execution(report["results"]))
         if "error" in report:
-            print("\nERROR\n" + report["error"])
-        print("\n" + response.status)
+            print("\nERROR:\n" + report["error"])
+        human_status = {
+            "TASK_SUCCESS": "TASK SUCCESS",
+            "TASK_FAILED": "TASK FAILED",
+            "VALIDATED_ONLY": "TASK VALIDATED ONLY",
+        }.get(response.status, response.status.replace("_", " "))
+        print("\n" + human_status)
         if "state" in report:
             print("FINAL STATE: " + json.dumps(report["state"], ensure_ascii=False))
         return 0 if response.status in ("TASK_SUCCESS", "VALIDATED_ONLY") else 1

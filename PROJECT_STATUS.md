@@ -1,21 +1,22 @@
 # UR3 LLM Assignment 2 - Project Status
 
-## Current status (28 September 2026)
+## Current status (29 September 2026)
 
 This is the authoritative submission status; milestone notes below are historical. The original UR3e / Gazebo Fortress / MoveIt architecture is retained. Configured identity: Kieu Minh Dung, ID 23020729 (`XX=29`, `P=5`); mapping: zone A=blue, zone B=yellow, zone C=red.
 
 - Motion regression: PASS — six fresh Gazebo runs, all 27 pick/place pairs and 44 expected invalid-request rejections; see [verification](docs/VERIFICATION.md).
-- Offline tests/build: PASS — 81 pytest cases; full colcon build passed; 82 colcon tests, zero errors/failures/skips.
+- Offline tests/build: PASS — 90 pytest cases; full colcon build passed; 91 colcon tests, zero errors/failures/skips.
 - ResetScene build/runtime: PASS. Independent Gazebo and MoveIt source-pose checks passed; a blue→zone C task then succeeded in the same Gazebo process. Evidence: [reset runtime record](docs/reset_scene_verified.txt).
-- Live 9Router tests and actual student-ID LLM-to-Gazebo task: NOT VERIFIED; required environment variables are absent in this review shell.
-- Secret scan: PASS for working tree and reachable history. Generated artifacts are cleaned and the final file set has been reviewed. No push has been performed.
+- Live 9Router English/Vietnamese tests and student-ID LLM-to-Gazebo task: requires user-side verification; the review shell has no `NINEROUTER_BASE_URL`, `NINEROUTER_API_KEY`, or `NINEROUTER_MODEL` configured.
+- Empty LLM plan is treated as a refusal and rejected before retry or robot execution. CLI plan and execution output share one formatter.
+- This review has not pushed changes. Current branch: `assignments_2`.
 
 The scene uses a 0.40 x 0.36 m table at z=0.06 m, source cubes at y=0.33 m, and 9 cm raised trays at y=0.24 m. Gazebo and MoveIt share the table, cube and tray collision geometry. Pick/place prefer short, collision-checked Cartesian routes; global optimality is not claimed. Simulated grasp uses pose synchronization because the UR3e model has no physical gripper.
 
 ## Revision semantics
 The C++ service's `revision` versions authoritative state. A successfully completed `home`, `pick`, or `place` increments once. If an accepted motion fails in a way that may have moved the arm or changed attachment state, `faulted` is latched and the revision advances once for that fault transition. Subsequent invalid/stale diagnostic calls do not alter the revision. This preserves stale-state protection and prevents invalid skill requests from creating fake state versions.
 
-## Next exact demo commands
+## Natural-language demo commands
 In terminal 1, source and start one stack:
 
 ```bash
@@ -26,7 +27,7 @@ source install/setup.bash
 ros2 launch ur3_llm_control llm_robot.launch.py
 ```
 
-Launch from a terminal where the three `NINEROUTER_*` variables are already set; terminal 2 then sends the natural-language command below. Variables exported only in terminal 2 do not reach a command server already running in terminal 1:
+Launch from a terminal where the three `NINEROUTER_*` variables are already set; terminal 2 then sends the natural-language command below. Variables exported only in terminal 2 do not reach a command server already running in terminal 1. A demo command uses the natural-language path through 9Router and does not use `--plan-file`:
 
 ```bash
 cd ~/HRI/ur3_LLM_b2
@@ -35,6 +36,8 @@ source ~/ros2_ws/install/setup.bash
 source install/setup.bash
 ros2 run ur3_llm_control command_cli 'Arrange all objects according to my student ID.'
 ```
+
+The deterministic `--plan-file` examples are regression/smoke tests only. The live language-model test commands and their current verification state are recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
 ## Historical implementation milestones
 

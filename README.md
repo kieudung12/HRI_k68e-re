@@ -1,53 +1,39 @@
 # Bài thực hành 02 — Điều khiển UR3e bằng LLM và Skill-based Planning
 
-Project xây dựng hệ thống điều khiển UR3e trong Gazebo Fortress bằng ROS 2 Humble, MoveIt 2 và 9Router. Người dùng nhập câu lệnh tiếng Việt hoặc tiếng Anh; LLM chỉ lập kế hoạch từ các skill cho phép. `PlanValidator` kiểm tra toàn bộ kế hoạch và trạng thái trước khi robot bắt đầu di chuyển. MoveIt lập kế hoạch, kiểm tra va chạm và thực thi chuyển động.
+Project điều khiển UR3e trong Gazebo Fortress bằng ROS 2 Humble và MoveIt 2. Người dùng gửi câu lệnh tiếng Việt hoặc tiếng Anh; 9Router chuyển yêu cầu thành kế hoạch JSON gồm các skill được phép. `PlanValidator` kiểm tra toàn bộ kế hoạch và trạng thái trước khi bất kỳ skill nào chạy. MoveIt lập kế hoạch chuyển động có kiểm tra va chạm rồi thực thi trên robot mô phỏng.
 
-## Thông tin sinh viên và nhiệm vụ cá nhân
+## Thông tin sinh viên
 
 | Sinh viên | MSSV | XX | P = XX mod 6 |
 |---|---:|---:|---:|
 | Kieu Minh Dung | 23020729 | 29 | 5 |
 
-Theo bảng của đề bài, nhiệm vụ là **Zone A → Blue, Zone B → Yellow, Zone C → Red**. Danh tính và phép tính được lưu trong [`config/student_config.yaml`](config/student_config.yaml); chương trình tính ánh xạ bằng code, không yêu cầu LLM tự tính MSSV.
+Mapping bài cá nhân: **Zone A → Blue, Zone B → Yellow, Zone C → Red**. Chương trình tính mapping từ [`config/student_config.yaml`](config/student_config.yaml); LLM không tự tính MSSV.
 
-![Gazebo Fortress chạy scene assignment2 với UR3e, bàn thao tác, ba phôi ở vị trí nguồn và ba khay A/B/C](docs/gazebo_demo.png)
+![Gazebo Fortress với UR3e, bàn, các phôi và khay A/B/C](docs/gazebo_demo.png)
 
-*Ảnh chụp trực tiếp từ Gazebo Fortress của project hiện tại, ở trạng thái khởi tạo với các phôi tại vị trí nguồn. Ảnh minh họa scene, không phải bằng chứng cho một lần gọi live LLM.*
+*Ảnh scene Gazebo ở trạng thái khởi tạo; ảnh minh họa mô hình, không phải bằng chứng cho một lần gọi live LLM.*
 
-## Kiến trúc chương trình
+## Kiến trúc
 
 ```mermaid
-flowchart TD
-  U[Người dùng: tiếng Việt / English] --> C[ROS 2 command server]
-  C --> I[LLM phân loại yêu cầu MSSV]
-  I --> L[9Router LLM Planner]
-  L --> J[JSON plan: pick / place / home]
-  J --> V[PlanValidator: schema + trạng thái + mapping]
-  V -->|hợp lệ| E[SkillExecutor: chạy tuần tự]
-  V -->|không hợp lệ, tối đa 2 lần| L
-  E --> R[RobotSkills ROS service]
-  R --> M[MoveIt 2: IK + collision checking + planning]
-  M --> T[joint_trajectory_controller]
-  T --> G[UR3e trong Gazebo]
-  R --> S[SceneManager]
-  S --> M
-  S --> G
+flowchart LR
+  U[Câu lệnh tiếng Việt / English] --> L[9Router LLM]
+  L --> J[JSON: pick / place / home]
+  J --> V[PlanValidator]
+  V -->|hợp lệ| E[SkillExecutor]
+  V -->|không hợp lệ| X[Từ chối trước khi chạy]
+  E --> S[robot_skills ROS service]
+  S --> M[MoveIt 2: IK, collision, planning]
+  M --> G[UR3e trong Gazebo]
+  S --> C[SceneManager: MoveIt + Gazebo]
 ```
 
-Luồng xử lý là **câu lệnh → LLM → JSON plan → kiểm tra hợp lệ → thực thi skill → MoveIt → robot mô phỏng**. LLM không sinh joint trajectory, góc khớp, mã điều khiển hay lệnh cho controller. Nếu plan thiếu trường, sai thứ tự hoặc thiếu `home()` cuối, chương trình gửi lỗi validator cho LLM để yêu cầu plan hoàn chỉnh mới, tối đa hai lần. Chương trình không tự sửa hay thêm skill; mọi plan mới đều phải qua validator độc lập. Nếu cả ba lần sinh plan đều sai hoặc JSON không hợp lệ, yêu cầu bị từ chối trước khi robot di chuyển. Plan rỗng cũng bị validator từ chối.
+LLM chỉ chọn và sắp xếp `pick(object)`, `place(object, zone)`, `home()`. LLM không sinh joint value, trajectory, velocity, mã điều khiển hay lệnh controller. Validator kiểm tra whitelist, schema chính xác, trạng thái đang giữ vật, khay đã chiếm, mapping sinh viên, revision và fault. Plan sai có thể được yêu cầu lập lại tối đa hai lần; mỗi plan mới vẫn phải qua validator. `{"plan":[]}` là tín hiệu từ chối: bị báo lỗi rõ ràng, không retry cùng phản hồi, không tự thêm skill và không thực thi robot.
 
-Các thành phần chính:
+## Build và khởi chạy
 
-- `ur3_llm_control/llm_planner.py`: gọi 9Router để phân loại ý định sinh viên và nhận JSON plan.
-- `ur3_llm_control/task_validator.py`: kiểm tra schema, skill/object/zone, trạng thái đang giữ vật, ô đích đã chiếm và mapping MSSV.
-- `ur3_llm_control/skill_executor.py`: lần lượt gọi các skill, dừng nếu có bước thất bại.
-- `src/robot_skills_node.cpp`: cài đặt `home()`, `pick(object)`, `place(object, zone)` bằng MoveIt.
-- `src/scene_manager.cpp`: quản lý vật thể trong Planning Scene và đồng bộ pose mô phỏng với Gazebo.
-- `command_cli --reset-scene`: tiện ích demo thủ công, không phải skill LLM.
-
-## Môi trường và build
-
-Đã kiểm tra trên Ubuntu 22.04, ROS 2 Humble, UR3e, Gazebo Fortress và MoveIt 2. Workspace phụ thuộc bản cài `ur_simulation_gz` có sẵn trong `~/ros2_ws`.
+Workspace phụ thuộc các gói UR đã cài trong `~/ros2_ws`.
 
 ```bash
 cd ~/HRI/ur3_LLM_b2
@@ -57,11 +43,11 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-Các thư mục `build/`, `install/` và `log/` được giữ cục bộ để build nhanh hơn, được Git ignore và không được commit. Nếu clone project trên máy khác thì chạy build ở trên để tạo lại chúng.
+Giữ nguyên `build/`, `install/`, `log/` ở máy local; Git ignore các thư mục này. Khi clone trên máy khác, chạy build để tạo chúng.
 
-## Cấu hình 9Router
+### Cấu hình 9Router
 
-Cần chạy 9Router và cấu hình ba biến môi trường trong **terminal sẽ khởi chạy ROS command server**. Không ghi API key vào source code, README, YAML hoặc command argument. Khi `read -rsp` hỏi key, terminal không hiện ký tự lúc gõ/dán; nhấn Enter sau khi dán xong.
+Khởi chạy 9Router trước. Trong **terminal sẽ chạy launch**, đặt các biến môi trường dưới đây rồi nhập API key tại dấu nhắc. Khi dùng `read -rsp`, ký tự gõ/dán không hiện trên màn hình; dán key rồi nhấn Enter. Không lưu key vào source, README, YAML hay tham số dòng lệnh.
 
 ```bash
 export NINEROUTER_BASE_URL=http://localhost:20128/v1
@@ -70,41 +56,40 @@ read -rsp '9Router API key: ' NINEROUTER_API_KEY; echo
 export NINEROUTER_API_KEY
 ```
 
-CLI gửi yêu cầu tới ROS server; biến môi trường trong terminal CLI không tự truyền sang server đang chạy ở terminal khác. Nếu thay đổi biến, hãy khởi chạy lại command server từ terminal đã cấu hình.
+Biến trong terminal client không truyền ngược sang server. Vì vậy hãy chạy launch từ chính terminal đã cấu hình đủ ba biến. Nếu server báo thiếu biến, dừng launch bằng `Ctrl+C`, cấu hình lại ở terminal đó rồi khởi chạy lại.
 
-## Chạy mô phỏng
-
-Terminal 1: cấu hình router, source các workspace rồi khởi chạy toàn bộ UR3e, Gazebo, MoveIt và ứng dụng:
+### Terminal 1 — Gazebo, MoveIt và command server
 
 ```bash
 cd ~/HRI/ur3_LLM_b2
 source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
 source install/setup.bash
-# Export ba biến 9Router như mục trên trước khi chạy launch.
+# Đặt ba biến 9Router trong terminal này như mục trên.
 ros2 launch ur3_llm_control llm_robot.launch.py
 ```
 
-Mặc định Gazebo GUI và RViz được mở. Chờ log `READY`, `Scene initialized` và service `/llm/command` trước khi gửi task. Chỉ chạy một stack trên mỗi ROS domain.
+Chờ log báo các node sẵn sàng và scene đã khởi tạo. Mặc định launch mở Gazebo GUI và RViz. Chỉ chạy một stack trên mỗi ROS domain.
 
-Terminal 2: source workspace rồi gửi câu lệnh. Ví dụ cơ bản:
+### Terminal 2 — Gửi yêu cầu tự nhiên
 
 ```bash
 cd ~/HRI/ur3_LLM_b2
 source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
 source install/setup.bash
-ros2 run ur3_llm_control command_cli 'Đưa khối màu đỏ vào vùng B.'
+ros2 run ur3_llm_control command_cli 'Please put the red cube in zone B.'
 ```
 
-Các cách diễn đạt khác cũng được gửi tới LLM, không ánh xạ cứng câu chữ thành hành động:
+Có thể dùng tiếng Việt hoặc yêu cầu khác:
 
 ```bash
-ros2 run ur3_llm_control command_cli 'Hãy lấy khối màu vàng và đặt nó vào ô A.'
+ros2 run ur3_llm_control command_cli 'Đưa khối màu đỏ vào vùng B.'
 ros2 run ur3_llm_control command_cli 'Move the blue cube to zone C.'
+ros2 run ur3_llm_control command_cli --student-task 'Arrange all objects according to my student ID.'
 ```
 
-Terminal cần hiển thị `USER COMMAND`, `LLM PLAN`, `VALIDATION`, `EXECUTION` và `TASK_SUCCESS`. Ví dụ kế hoạch cho yêu cầu đỏ → B:
+Output CLI hiển thị `USER COMMAND`, `LLM PLAN`, `VALIDATION`, `EXECUTION` và `TASK SUCCESS`/`TASK FAILED`. Với câu lệnh đỏ → B, kế hoạch dự kiến là:
 
 ```text
 1. pick(red_cube)
@@ -112,68 +97,57 @@ Terminal cần hiển thị `USER COMMAND`, `LLM PLAN`, `VALIDATION`, `EXECUTION
 3. home()
 ```
 
-Chạy nhiệm vụ MSSV theo mapping trong file cấu hình:
+`home()` là skill cuối để đưa robot về tư thế đã cấu hình sau khi đặt vật; nó cũng là điều kiện của schema kế hoạch bài tập.
+
+### Kiểm thử bằng plan dựng sẵn
+
+`--plan-file` cùng `config/basic_plan.json` và `config/blue_to_c_plan.json` chỉ dùng cho regression/smoke test đường ROS → validator → executor → robot, không kiểm thử khả năng hiểu ngôn ngữ của LLM. Ví dụ:
 
 ```bash
-ros2 run ur3_llm_control command_cli --student-task \
-  'Arrange all objects according to my student ID.'
+ros2 run ur3_llm_control command_cli --plan-file config/basic_plan.json
 ```
 
-`--student-task` buộc validator xác nhận trạng thái cuối khớp chính xác mapping cá nhân. LLM vẫn tự sinh và sắp xếp các bước; chương trình không đưa sẵn thứ tự skill cho LLM.
+Demo natural-language chính thức **không** dùng `--plan-file`; đường xử lý đó bắt buộc đi qua 9Router LLM.
 
-## Xử lý lỗi thường gặp
+## Skills, chuyển động và giới hạn mô phỏng
 
-- `Missing environment variables: NINEROUTER_*`: các biến môi trường chưa được đặt trong terminal đã khởi chạy `llm_robot.launch.py`. Dừng launch bằng `Ctrl+C`, đặt biến và nhập API key trong **cùng terminal**, rồi khởi chạy lại. Terminal chỉ chạy `command_cli` không truyền ngược biến môi trường sang command server.
-- `LLM plan remained invalid after 2 replans`: validator đã từ chối plan ban đầu và hai plan LLM tạo lại. Robot chưa chạy skill nào; đây không phải lỗi kết nối API/key và không cần restart Gazebo. Lưu log từ terminal launch để kiểm tra phản hồi/model 9Router. Không sửa tay plan rồi coi đó là kết quả LLM.
+- `home()`: MoveIt đưa robot về tư thế `up` khai báo trong cấu hình UR.
+- `pick(object)`: tiếp cận phôi theo đường đã kiểm tra rồi cập nhật trạng thái gắp trong scene.
+- `place(object, zone)`: đưa phôi tới khay, cập nhật trạng thái đặt và rút robot.
 
-## Robot skills và an toàn
+Các bước chuyển động vẫn được kiểm tra bởi MoveIt, gồm IK, giới hạn khớp, va chạm, độ đầy đủ của Cartesian path và giới hạn joint jump. Executor dừng ở skill lỗi đầu tiên. Đường đi ưu tiên ngắn và an toàn trong cấu hình hiện tại; project không tuyên bố tìm tối ưu toàn cục.
 
-Các skill được phép là:
+**Virtual grasp:** model UR3e hiện không có physical gripper controller. Khi gắp, MoveIt gắn phôi dưới dạng `moveit_msgs/AttachedCollisionObject` vào `tool0`; pose khối trong Gazebo được đồng bộ theo TCP. Đây là mô phỏng logic gắp, không mô phỏng lực kẹp, ma sát, trượt hay gripper vật lý.
 
-- `home()`: MoveIt lập kế hoạch tới tư thế `up` trong SRDF.
-- `pick(object)`: tiếp cận và đi xuống bằng đường Cartesian đã kiểm tra; sau đó gắn phôi vào end-effector trong MoveIt.
-- `place(object, zone)`: di chuyển tới khay, đi xuống, tháo phôi khỏi trạng thái attached và cập nhật vị trí đặt.
+Scene có bàn, ba cube và ba khay xám A/B/C. Kích thước và vị trí được khai báo ở [`config/scene.yaml`](config/scene.yaml). Nếu yêu cầu sắp xếp cần hoán đổi vòng khi cả ba khay đã kín thì bộ skill hiện tại không có vị trí staging; validator từ chối trước khi chạy.
 
-Mỗi skill trả trạng thái như `SUCCESS`, `PLANNING_FAILED`, `EXECUTION_FAILED`, `INVALID_OBJECT` hoặc `INVALID_ZONE`. Validator kiểm tra toàn bộ plan trước bước đầu tiên; executor dừng tại lỗi đầu tiên. MoveIt xử lý IK, joint limits, self-collision và collision với bàn, phôi, khay. Các đoạn Cartesian chỉ chạy khi đường đi đầy đủ và vượt qua kiểm tra va chạm/joint jump.
+## Reset scene để chạy lại
 
-Scene có một UR3e, bàn, ba cube và ba khay xám có nhãn A/B/C. Kích thước/vị trí cấu hình tại [`config/scene.yaml`](config/scene.yaml), dùng để tạo vật thể Gazebo và collision geometry cho MoveIt. Hệ thống ưu tiên đường Cartesian ngắn và an toàn; không tuyên bố tối ưu toàn cục.
-
-**Giới hạn mô phỏng gắp:** model UR3e đang dùng không có ngón gắp hoặc gripper controller. Vì vậy project biểu diễn thao tác gắp bằng trạng thái attached trong MoveIt và đồng bộ pose của cube trong Gazebo. Đây là simulated grasp, không phải mô phỏng lực kẹp, trượt hoặc rơi vật lý.
-
-Nếu các vùng đích đã bị chiếm, chương trình dùng các vùng trống để sắp xếp lại khi có thể. Chu trình hoán đổi mà cả ba khay đều đã kín không có vùng tạm trong bộ skill hiện tại nên bị từ chối an toàn trước khi robot chạy.
-
-## Reset scene cho các lần demo tiếp theo
-
-Sau khi hoàn tất một task, trả robot về home và đưa cả ba cube về vị trí source mà không restart Gazebo:
+Sau khi robot đã thả vật và scene còn khỏe, có thể trả robot về home và đưa cube về vị trí nguồn mà không khởi động lại Gazebo:
 
 ```bash
 ros2 run ur3_llm_control command_cli --reset-scene
 ```
 
-Đây là tiện ích demo xác định, không gọi LLM và không nằm trong vocabulary của robot skill. Reset chỉ được chấp nhận khi không có phôi đang được giữ và scene còn khỏe. Chương trình đồng bộ lại pose cube giữa Gazebo, MoveIt Planning Scene và trạng thái logic.
+Đây là tiện ích demo xác định, không gọi LLM và không phải skill trong vocabulary của planner.
 
-Ví dụ: chạy bài MSSV, reset scene, rồi thử một yêu cầu đơn vật thể khác.
+## Kiểm thử và trạng thái xác minh
 
-## Kiểm thử và kết quả
+Các lệnh kiểm thử offline:
 
 ```bash
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q test
-colcon test
+colcon build --symlink-install
+colcon test --packages-select ur3_llm_control
 colcon test-result --verbose
-# Các smoke test sau cần mô phỏng đang chạy:
-ros2 run ur3_llm_control check_scene
-ros2 run ur3_llm_control robot_smoke_test
-ros2 run ur3_llm_control mapping_smoke_test --permutation 0
 ```
 
-Kết quả offline hiện tại: **81 pytest pass**; **82 colcon test pass**, không lỗi/failure/skip. Bộ kiểm thử Gazebo/MoveIt đã chạy sáu scene mới, gồm 27 lần pick, 27 lần place, các chuyển động giữa nguồn và khay, các lần chuyển giữa các khay và 44 trường hợp plan không hợp lệ bị chặn. Reset scene cũng được kiểm tra bằng truy vấn độc lập tới Gazebo và MoveIt; sau reset, blue cube đã được đặt vào zone C thành công trong cùng tiến trình Gazebo. Chi tiết và log chọn lọc ở [`docs/VERIFICATION.md`](docs/VERIFICATION.md) và [`docs/reset_scene_verified.txt`](docs/reset_scene_verified.txt).
+Kết quả của lần review ngày 29-09-2026: **90 pytest pass**; **91 colcon tests, 0 errors, 0 failures, 0 skipped**; `colcon build --symlink-install` hoàn tất với 1 package. Kiểm thử offline và deterministic không thay thế live test 9Router. Trạng thái live English, Vietnamese và student-task được ghi riêng trong [`docs/VERIFICATION.md`](docs/VERIFICATION.md); nếu thiếu môi trường router thì cần kiểm tra ở máy demo bằng các lệnh tại đó.
 
-**Trạng thái kiểm thử LLM:** live 9Router English/Vietnamese và task MSSV từ LLM tới Gazebo hiện ghi **NOT VERIFIED** trong phiên review cuối vì shell review không có ba biến `NINEROUTER_*`. Bộ kiểm thử deterministic không thay thế kiểm thử live LLM; khi demo cần chạy router thật và ghi lại output/video.
+## Tài liệu nộp bài
 
-## Tài liệu và mã nguồn
-
-- [`docs/PRESENTATION_GUIDE.md`](docs/PRESENTATION_GUIDE.md): hướng dẫn giải thích chương trình khi trình bày.
-- [`docs/VERIFICATION.md`](docs/VERIFICATION.md): trạng thái test và phạm vi kiểm chứng.
-- [`docs/FILES.md`](docs/FILES.md): danh mục source và tài liệu.
-- Repository: [HRI_k68e-re](https://github.com/kieudung12/HRI_k68e-re), branch `assignments_2`.
-- Video demo: *chưa có — bổ sung liên kết sau khi quay demo live LLM.*
+- [Hướng dẫn trình bày](docs/PRESENTATION_GUIDE.md)
+- [Kết quả xác minh](docs/VERIFICATION.md)
+- [Danh mục file](docs/FILES.md)
+- [Repository — branch assignments_2](https://github.com/kieudung12/HRI_k68e-re/tree/assignments_2)
+- [Video demo](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing)

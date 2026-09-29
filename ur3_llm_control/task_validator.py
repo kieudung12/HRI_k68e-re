@@ -52,7 +52,9 @@ class PlanValidator:
         if type(data) is not dict or set(data) != {"plan"}:
             raise ValidationError("Top level must contain exactly 'plan'")
         steps = data["plan"]
-        if type(steps) is not list or not 1 <= len(steps) <= 40:
+        if type(steps) is list and not steps:
+            raise ValidationError("plan is empty; no executable action was proposed")
+        if type(steps) is not list or len(steps) > 40:
             raise ValidationError("plan must be a nonempty list of at most 40 steps")
         if type(steps[-1]) is not dict or steps[-1] != {"skill": "home"}:
             raise ValidationError("plan must end with exactly home()")

@@ -64,7 +64,7 @@ def test_empty_llm_plan_is_preserved_then_validator_rejects():
     result=p.plan("impossible request")
     assert result == {"plan":[]}
     assert s.post.call_args.kwargs["json"]["tools"][0]["function"]["parameters"]["properties"]["plan"]["minItems"] == 0
-    with pytest.raises(ValidationError,match="nonempty"):
+    with pytest.raises(ValidationError,match="empty.*no executable action"):
         PlanValidator().validate(result)
 
 def test_malformed_explicit_request_fails_without_rule_fallback():

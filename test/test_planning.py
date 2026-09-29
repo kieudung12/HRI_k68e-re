@@ -60,6 +60,14 @@ def test_second_invalid_replan_is_rejected_without_execution():
     assert planner.calls == 3
 
 
+def test_empty_plan_is_rejected_clearly_without_wasted_replan():
+    planner = FakePlanner({"plan": []}, VALID)
+    with pytest.raises(ValidationError, match="empty plan.*no safe executable plan"):
+        plan_and_validate(planner, "unsafe request", {}, WorldState())
+    assert planner.calls == 1
+    assert planner.revision is None
+
+
 def test_missing_place_argument_feedback_names_required_field():
     invalid = {"plan": [
         {"skill": "pick", "object": "red_cube"},

@@ -24,7 +24,9 @@ a student arrangement. Respect current object_locations, held_object, and zone_o
 
 Pick before place; hold only one object; place only the held object; never place into an occupied zone.
 Always finish with exactly one final home(), holding nothing. Do not put home() in the middle and do not
-add a second home(). If the request cannot be fulfilled safely, return {"plan":[]}.
+add a second home(). If the request cannot be fulfilled safely, return {"plan":[]} as a refusal
+sentinel. An empty plan is not executable and must be rejected by PlanValidator without retrying
+the same empty response. Never turn this refusal into a success or add skills to complete it.
 For a required student mapping, arrange all objects exactly as specified, using empty zones first.
 Objects already correctly placed need not move. Occupied-zone cycles without an empty destination cannot
 be performed with these skills; return {"plan":[]} in that case.

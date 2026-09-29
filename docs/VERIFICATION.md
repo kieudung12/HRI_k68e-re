@@ -1,21 +1,34 @@
 # Final submission verification
 
-## Current review result
+## Current review result (29 September 2026)
 
 The following sections distinguish offline/deterministic robot testing from live language-model and identity-specific behavior. Reset was tested on a fresh stack, including independent Gazebo and MoveIt queries and a second task without restarting Gazebo.
 
 | Area | Current result | Scope |
 |---|---|---|
-| Deterministic unit tests | PASS: 81 cases | No router or robot required |
-| ROS build/test | PASS: 82 tests, zero failures/errors/skips | Build, CTest wrapper and Python tests |
+| Deterministic unit tests | PASS: 90 cases | `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q test`; no router or robot required |
+| Python compile check | PASS | `python3 -m compileall -q ur3_llm_control launch test scripts` |
+| YAML/JSON parse | PASS: 10 files | All repository YAML/JSON configs and data parsed |
+| ROS build/test | PASS: 91 tests, zero failures/errors/skips | `colcon build --symlink-install`; `colcon test --packages-select ur3_llm_control`; `colcon test-result --verbose` |
 | Deterministic Gazebo/MoveIt motion | PASS | Six fresh scenes; pick/place matrix and invalid-plan rejection |
 | ResetScene build | PASS | ROS service interface, CLI and C++ node built |
 | ResetScene live runtime | PASS | [Fresh-stack reset test](reset_scene_verified.txt); Gazebo and MoveIt queried independently |
 | Post-reset second robot task | PASS | Blue source→zone C→home completed in the same Gazebo process; independent Gazebo/MoveIt readback |
-| Live 9Router English/Vietnamese/student planner | NOT VERIFIED | All three required router variables were unavailable in this review shell |
-| Student-ID LLM-to-Gazebo task | NOT VERIFIED | No live LLM execution claimed |
+| Live 9Router English/Vietnamese/student planner | Requires user-side verification | Router variables are not configured in the review environment; no live result is claimed |
+| Natural-language robot tasks in Gazebo | Requires user-side verification | Do not infer these from structured `--plan-file` regression runs |
 
 # Historical verification record
+
+For live verification on the demo machine, first configure 9Router and launch the robot stack as described in the README. In a second sourced terminal, run the planner integration test (it checks live generated plans and validation), then execute the required natural-language commands through `command_cli` (without `--plan-file`):
+
+```bash
+ros2 run ur3_llm_control planner_integration_test
+ros2 run ur3_llm_control command_cli 'Please put the red cube in zone B.'
+ros2 run ur3_llm_control command_cli 'Move the blue cube to zone C.'
+ros2 run ur3_llm_control command_cli --student-task 'Arrange all objects according to my student ID.'
+```
+
+Reset the scene between tasks when needed. For the student task, verify the final mapping is `blue_cube -> zone_a`, `yellow_cube -> zone_b`, `red_cube -> zone_c`, `held_object=null`, and that the final plan step is `home()`. Record these as PASS only after observing the actual CLI and robot result. Plan files are deterministic pipeline regressions and do not verify 9Router.
 
 ## Motion repair verified on 28 September 2026
 
@@ -25,7 +38,7 @@ The old layout failed because the downward tool orientation puts wrist_1 about 9
 
 | Check | Result | Evidence |
 |---|---|---|
-| Fresh build + offline regression | PASS | 73 pytest cases; colcon reports 74 tests, zero errors/failures/skips |
+| Fresh build + offline regression | PASS (historical, 27 Sep) | 73 pytest cases; colcon reports 74 tests, zero errors/failures/skips |
 | Six complete color-to-tray assignments | PASS | [Full machine-readable report](pick_place_verified.json), including the configured P=5 mapping |
 | Every source color to every tray (3×3) | PASS | Covered by the six assignments |
 | All six directed transfers between distinct trays | PASS | Case 0 re-picks red and traverses A→B→A→C→B→C→A |
@@ -64,14 +77,14 @@ Executed on Ubuntu 22.04 / ROS 2 Humble / Gazebo Fortress, 27 September 2026. Cu
 | Invalid skill revision probe | PASS | `INVALID_SKILL`; revision stayed 3 |
 | Stale revision probe | PASS | Expected revision 2 returned `STALE_STATE`; revision stayed 3 |
 | RViz / Gazebo startup | PASS | RViz loaded the robot model; Gazebo GUI plugins and scene loaded |
-| Live 9Router English / Vietnamese / student planner | NOT VERIFIED | All three `NINEROUTER_*` variables are missing; integration script reported this without showing values |
-| Natural-language student-ID task in Gazebo | NOT VERIFIED | Requires a live router environment; no credentials were present |
+| Live 9Router English / Vietnamese / student planner | Requires user-side verification | Historical run had no router variables; current review also has no configured router |
+| Natural-language student-ID task in Gazebo | Requires user-side verification | No live LLM execution is claimed |
 | Earlier P=0 synthetic robot fixture | PASS (prior run) | [Mapping report](mapping_smoke_verified.json); synthetic fixture only, not the configured student's assignment |
 | Home/pick/place scene exclusivity | PASS (prior run) | [Robot report](robot_smoke_verified.json), WORLD/ATTACHED queries and final placement pose |
 | Occupied full cycle | Unsupported, safely rejected | No staging skill exists; deterministic check refuses before motion |
 
 `safe_order()` is used only for deterministic feasibility tests and smoke fixtures. The normal language path gives the LLM current state and the trusted mapping, uses an LLM intent-classification call, and sends no precomputed skill order to the planner. `--student-task` enforces mapping in validation.
 
-The P=0 report predates this review and is retained as a synthetic regression fixture. The current P=5 real-ID mapping has deterministic test and dry-run validation; actual LLM/Gazebo execution remains NOT VERIFIED. The screenshot [gazebo_demo.png](gazebo_demo.png) is the earlier P=0 run, not evidence of a P=5 live LLM task.
+The P=0 report predates this review and is retained as a synthetic regression fixture. The current P=5 real-ID mapping has deterministic test and dry-run validation; actual LLM/Gazebo execution requires user-side verification. The screenshot [gazebo_demo.png](gazebo_demo.png) illustrates the current initialized scene; it is not evidence of a live LLM task.
 
 The machine has previously shown an upstream MoveIt Humble callback-group destruction segmentation fault during Ctrl+C shutdown. This review's basic runtime command completed successfully; the current stack was left running. Start only one stack per ROS domain. Cubes still use the documented virtual grasp and pose synchronization, not physical finger contact.
