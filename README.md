@@ -12,7 +12,7 @@
 
 **Video demo:** [Xem video trên Google Drive](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing)
 
-![UR3e trong Gazebo Fortress với bàn thao tác, các khối và khay A/B/C](docs/gazebo_demo.png)
+![UR3e trong Gazebo Fortress với bàn thao tác, các khối và khay A/B/C](assets/demo_gazebo_scene.png)
 
 *Ảnh chụp scene mô phỏng ở trạng thái khởi tạo. Ảnh minh họa bố trí Gazebo, không đại diện cho một lần chạy LLM trực tiếp.*
 
@@ -72,7 +72,7 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-`build/`, `install/` và `log/` được giữ cục bộ để tái sử dụng kết quả build, đồng thời được Git ignore. Sau khi clone repo trên máy khác, chạy lại lệnh build ở trên.
+Sau khi clone repository, cần build package trước khi chạy.
 
 ## Chạy demo
 
@@ -136,6 +136,8 @@ CLI trình bày lệnh, kế hoạch, kết quả validation, trạng thái từ
 
 `home()` đưa robot về tư thế `up` đã cấu hình và là bước cuối bắt buộc theo hợp đồng plan của bài.
 
+Khi thực thi thành công, CLI hiển thị kế hoạch do LLM sinh, trạng thái từng skill và kết thúc bằng `TASK SUCCESS`.
+
 ## An toàn chuyển động và giới hạn mô phỏng
 
 MoveIt chịu trách nhiệm IK, lập kế hoạch và kiểm tra va chạm. Các đoạn Cartesian chỉ được thực thi khi đường đi đạt điều kiện đầy đủ và vượt kiểm tra joint jump. Executor dừng tại skill đầu tiên thất bại. Cấu hình ưu tiên đường đi ngắn, có kiểm tra va chạm; project không tuyên bố tối ưu quỹ đạo toàn cục.
@@ -156,11 +158,7 @@ ros2 run ur3_llm_control command_cli --reset-scene
 
 ## Tài liệu tham khảo kỹ thuật
 
-Các liên kết sau là tài liệu dự án chính thức dùng để tra cứu công nghệ nền; chúng không hàm ý mã nguồn bài tập là bản sao của các dự án đó.
-
-- [ROS 2 Humble Documentation](https://docs.ros.org/en/humble/) — hệ sinh thái ROS 2 và hướng dẫn theo distro.
-- [MoveIt 2 Humble Documentation](https://moveit.picknik.ai/humble/) — lập kế hoạch chuyển động, Planning Scene và collision checking.
-- [Gazebo Fortress Documentation](https://gazebosim.org/docs/fortress/) — simulator đang dùng trong workspace.
-- [Gazebo `ros_gz` integration — nhánh Humble](https://github.com/gazebosim/ros_gz/tree/humble) — cầu nối ROS 2 và Gazebo.
-- [Universal Robots Gazebo Simulation](https://github.com/UniversalRobots/Universal_Robots_ROS2_GZ_Simulation/tree/humble) — project mô phỏng Gazebo của nhà sản xuất; workspace này dùng package `ur_simulation_gz`.
-- [Universal Robots ROS 2 Driver — nhánh Humble](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/tree/humble) — driver ROS 2 chính thức và tài liệu hỗ trợ MoveIt. Repo bài tập này chạy UR3e trong mô phỏng, không kết nối robot thật.
+- [ROS 2 Humble](https://docs.ros.org/en/humble/)
+- [MoveIt 2](https://moveit.picknik.ai/humble/)
+- [Gazebo Fortress](https://gazebosim.org/docs/fortress/)
+- [Universal Robots ROS 2](https://github.com/UniversalRobots/Universal_Robots_ROS2_GZ_Simulation/tree/humble)
