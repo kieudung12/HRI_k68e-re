@@ -9,8 +9,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from ament_index_python.packages import get_package_share_directory
 from ur3_llm_control.srv import ExecuteCommand
-from .llm_planner import LLMPlanner, strict_json
-from .task_validator import PlanValidator
+from .llm_planner import LLMPlanner
 from .planning import plan_and_validate
 from .student_task import student_mapping, build_trusted_context
 from .request_policy import classify_student_request
@@ -40,7 +39,6 @@ class CommandServer(Node):
             student_context=None
             config_error=None
             llm_retried=False
-            validated=None
             try:
                 config=yaml.safe_load(Path(self.get_parameter("student_config").value).read_text())
                 if not isinstance(config,dict) or not config.get("student_name") or config["student_name"]=="TODO":
@@ -51,34 +49,24 @@ class CommandServer(Node):
                 config_error=str(exc)
             if request.student_task and mapping is None:
                 raise ValueError("Strict student-task mode requires a valid config/student_config.yaml: " + (config_error or "invalid identity"))
-            if request.plan_json:
-                if request.command:
-                    raise ValueError("Use either a structured plan or a natural-language command")
-                plan=strict_json(request.plan_json)
-                student_specific=bool(request.student_task)
-                if student_specific and mapping is None:
-                    raise ValueError("Strict student-task mode requires a valid config/student_config.yaml: " + (config_error or "invalid identity"))
-            else:
-                planner=LLMPlanner(self.share/"prompt/planner_prompt.txt")
-                student_specific=classify_student_request(
-                    planner, request.command, request.student_task, mapping, config_error)
-                # Do not show the student mapping while planning an ordinary
-                # object-to-zone command.  The mapping is authoritative only
-                # after the intent classifier has identified a student task;
-                # exposing it for every request makes the model reinterpret a
-                # direct command as a mapping conflict and answer with prose.
-                plan_context = (build_trusted_context(state,(xx,p,mapping))
-                                if student_specific and student_context is not None
-                                else context)
-                plan,validated,llm_retried=plan_and_validate(
-                    planner,request.command,plan_context,state,
-                    mapping if student_specific else None)
-                if llm_retried:
-                    self.get_logger().warning(
-                        "Initial LLM plan failed validation; a replacement plan passed validation")
+            planner=LLMPlanner(self.share/"prompt/planner_prompt.txt")
+            student_specific=classify_student_request(
+                planner, request.command, request.student_task, mapping, config_error)
+            # Do not show the student mapping while planning an ordinary
+            # object-to-zone command.  The mapping is authoritative only
+            # after the intent classifier has identified a student task;
+            # exposing it for every request makes the model reinterpret a
+            # direct command as a mapping conflict and answer with prose.
+            plan_context = (build_trusted_context(state,(xx,p,mapping))
+                            if student_specific and student_context is not None
+                            else context)
+            plan,validated,llm_retried=plan_and_validate(
+                planner,request.command,plan_context,state,
+                mapping if student_specific else None)
+            if llm_retried:
+                self.get_logger().warning(
+                    "Initial LLM plan failed validation; a replacement plan passed validation")
             enforced_mapping=mapping if student_specific else None
-            if validated is None:
-                validated=PlanValidator().validate(plan,state,enforced_mapping)
             report={"command":request.command,"plan":plan,"validation":"VALID",
                     "student_mapping_enforced":student_specific,"required_mapping":enforced_mapping}
             if llm_retried:

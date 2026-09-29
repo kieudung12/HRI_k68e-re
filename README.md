@@ -10,7 +10,7 @@
 | Motion planning | MoveIt 2 |
 | Branch nộp bài | [`assignments_2`](https://github.com/kieudung12/HRI_k68e-re/tree/assignments_2) |
 
-**Tài liệu nộp bài:** [Video demo](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing) · [Hướng dẫn trình bày](docs/PRESENTATION_GUIDE.md)
+**Video demo:** [Xem video trên Google Drive](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing)
 
 ![UR3e trong Gazebo Fortress với bàn thao tác, các khối và khay A/B/C](docs/gazebo_demo.png)
 
@@ -153,10 +153,3 @@ Các liên kết sau là tài liệu dự án chính thức dùng để tra cứ
 - [Gazebo `ros_gz` integration — nhánh Humble](https://github.com/gazebosim/ros_gz/tree/humble) — cầu nối ROS 2 và Gazebo.
 - [Universal Robots Gazebo Simulation](https://github.com/UniversalRobots/Universal_Robots_ROS2_GZ_Simulation/tree/humble) — project mô phỏng Gazebo của nhà sản xuất; workspace này dùng package `ur_simulation_gz`.
 - [Universal Robots ROS 2 Driver — nhánh Humble](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/tree/humble) — driver ROS 2 chính thức và tài liệu hỗ trợ MoveIt. Repo bài tập này chạy UR3e trong mô phỏng, không kết nối robot thật.
-
-## Tài liệu và liên kết nộp bài
-
-- [Hướng dẫn trình bày](docs/PRESENTATION_GUIDE.md)
-- [Danh mục file dự án](docs/FILES.md)
-- [Mã nguồn trên GitHub — branch `assignments_2`](https://github.com/kieudung12/HRI_k68e-re/tree/assignments_2)
-- [Video demo](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing)
