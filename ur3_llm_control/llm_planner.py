@@ -15,20 +15,29 @@ PLAN_TOOL = {
     "type": "function",
     "function": {
         "name": "emit_plan",
-        "description": "Return the UR3 skill plan as exact skill objects.",
+        "description": (
+            "Return the complete UR3 skill plan. Exact step shapes: pick requires skill and object; "
+            "place requires skill, object, and zone; home requires only skill."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
                 "plan": {
                     "type": "array",
+                    "description": (
+                        "Exact step fields only: pick={skill,object}, "
+                        "place={skill,object,zone}, home={skill}. End with one home step."
+                    ),
                     "minItems": 0,
                     "maxItems": 40,
                     "items": {
                         "type": "object",
                         "properties": {
                             "skill": {"type": "string", "enum": ["pick", "place", "home"]},
-                            "object": {"type": "string", "enum": ["red_cube", "yellow_cube", "blue_cube"]},
-                            "zone": {"type": "string", "enum": ["zone_a", "zone_b", "zone_c"]},
+                            "object": {"type": "string", "enum": ["red_cube", "yellow_cube", "blue_cube"],
+                                       "description": "Required for pick and place; omit for home."},
+                            "zone": {"type": "string", "enum": ["zone_a", "zone_b", "zone_c"],
+                                     "description": "Required for place; omit for pick and home."},
                         },
                         "required": ["skill"],
                         "additionalProperties": False,

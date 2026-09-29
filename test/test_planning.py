@@ -15,7 +15,7 @@ MISSING_HOME = {"plan": VALID["plan"][:-1]}
 class FakePlanner:
     def __init__(self, first, replacement=None):
         self.first = first
-        self.replacement = replacement
+        self.replacements = list(replacement) if isinstance(replacement, list) else [replacement]
         self.calls = 0
         self.revision = None
 
@@ -26,7 +26,7 @@ class FakePlanner:
     def revise_plan(self, command, context, rejected_plan, validation_error):
         self.calls += 1
         self.revision = (command, context, rejected_plan, validation_error)
-        return self.replacement
+        return self.replacements.pop(0)
 
 
 def test_valid_first_plan_does_not_call_retry():
@@ -39,7 +39,7 @@ def test_valid_first_plan_does_not_call_retry():
     assert planner.calls == 1
 
 
-def test_missing_home_gets_one_full_llm_replan_then_validation():
+def test_missing_home_gets_full_llm_replan_then_validation():
     planner = FakePlanner(MISSING_HOME, VALID)
     plan, validated, retried = plan_and_validate(
         planner, "move red", {"state": "trusted"}, WorldState())
@@ -53,8 +53,21 @@ def test_missing_home_gets_one_full_llm_replan_then_validation():
     assert MISSING_HOME["plan"] == VALID["plan"][:-1]
 
 
-def test_invalid_replacement_is_rejected_after_exactly_one_retry():
-    planner = FakePlanner(MISSING_HOME, MISSING_HOME)
-    with pytest.raises(ValidationError, match="after one replan.*home"):
+def test_second_invalid_replan_is_rejected_without_execution():
+    planner = FakePlanner(MISSING_HOME, [MISSING_HOME, MISSING_HOME])
+    with pytest.raises(ValidationError, match="after 2 replans.*home"):
         plan_and_validate(planner, "move red", {}, WorldState())
-    assert planner.calls == 2
+    assert planner.calls == 3
+
+
+def test_missing_place_argument_feedback_names_required_field():
+    invalid = {"plan": [
+        {"skill": "pick", "object": "red_cube"},
+        {"skill": "place", "zone": "zone_b"},
+        {"skill": "home"},
+    ]}
+    planner = FakePlanner(invalid, VALID)
+    plan, _, retried = plan_and_validate(planner, "move red", {}, WorldState())
+    assert plan == VALID
+    assert retried is True
+    assert "missing required field(s): object" in planner.revision[3]

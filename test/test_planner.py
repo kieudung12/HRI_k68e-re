@@ -31,7 +31,7 @@ def test_missing_place_object_is_not_inferred():
     p,_=planner({"choices":[{"message":{"tool_calls":[{"function":{"arguments":__import__("json").dumps(raw)}}]}}]})
     result=p.plan("move red to B")
     assert result == raw
-    with pytest.raises(ValidationError,match="missing or unexpected arguments"):
+    with pytest.raises(ValidationError,match="missing required field.*object"):
         PlanValidator().validate(result)
 
 def test_missing_final_home_is_not_appended():

@@ -75,7 +75,7 @@ class CommandServer(Node):
                     mapping if student_specific else None)
                 if llm_retried:
                     self.get_logger().warning(
-                        "Initial LLM plan failed validation; one replacement plan was generated and validated")
+                        "Initial LLM plan failed validation; a replacement plan passed validation")
             enforced_mapping=mapping if student_specific else None
             if validated is None:
                 validated=PlanValidator().validate(plan,state,enforced_mapping)

@@ -66,7 +66,14 @@ class PlanValidator:
                 reject("unknown skill")
             fields = {"skill"} | ({"object"} if skill != "home" else set()) | ({"zone"} if skill == "place" else set())
             if set(step) != fields:
-                reject("missing or unexpected arguments")
+                missing = sorted(fields - set(step))
+                unexpected = sorted(set(step) - fields)
+                details = []
+                if missing:
+                    details.append("missing required field(s): " + ", ".join(missing))
+                if unexpected:
+                    details.append("unexpected field(s): " + ", ".join(unexpected))
+                reject("; ".join(details))
             if skill == "home" and i != len(steps):
                 reject("home() must be the final skill")
             obj = step.get("object")

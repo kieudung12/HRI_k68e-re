@@ -24,7 +24,7 @@ flowchart TD
   L --> J[JSON plan: pick / place / home]
   J --> V[PlanValidator: schema + trạng thái + mapping]
   V -->|hợp lệ| E[SkillExecutor: chạy tuần tự]
-  V -->|không hợp lệ, tối đa 1 lần| L
+  V -->|không hợp lệ, tối đa 2 lần| L
   E --> R[RobotSkills ROS service]
   R --> M[MoveIt 2: IK + collision checking + planning]
   M --> T[joint_trajectory_controller]
@@ -34,7 +34,7 @@ flowchart TD
   S --> G
 ```
 
-Luồng xử lý là **câu lệnh → LLM → JSON plan → kiểm tra hợp lệ → thực thi skill → MoveIt → robot mô phỏng**. LLM không sinh joint trajectory, góc khớp, mã điều khiển hay lệnh cho controller. Nếu plan đầu tiên thiếu trường, sai thứ tự hoặc thiếu `home()` cuối, chương trình gửi lỗi validator cho LLM để yêu cầu một plan hoàn chỉnh mới. Chương trình không tự sửa hay thêm skill; plan mới vẫn phải qua validator độc lập. Chỉ thử lại một lần; nếu plan mới sai hoặc JSON không hợp lệ, yêu cầu bị từ chối trước khi robot di chuyển. Plan rỗng cũng bị validator từ chối.
+Luồng xử lý là **câu lệnh → LLM → JSON plan → kiểm tra hợp lệ → thực thi skill → MoveIt → robot mô phỏng**. LLM không sinh joint trajectory, góc khớp, mã điều khiển hay lệnh cho controller. Nếu plan thiếu trường, sai thứ tự hoặc thiếu `home()` cuối, chương trình gửi lỗi validator cho LLM để yêu cầu plan hoàn chỉnh mới, tối đa hai lần. Chương trình không tự sửa hay thêm skill; mọi plan mới đều phải qua validator độc lập. Nếu cả ba lần sinh plan đều sai hoặc JSON không hợp lệ, yêu cầu bị từ chối trước khi robot di chuyển. Plan rỗng cũng bị validator từ chối.
 
 Các thành phần chính:
 
@@ -124,7 +124,7 @@ ros2 run ur3_llm_control command_cli --student-task \
 ## Xử lý lỗi thường gặp
 
 - `Missing environment variables: NINEROUTER_*`: các biến môi trường chưa được đặt trong terminal đã khởi chạy `llm_robot.launch.py`. Dừng launch bằng `Ctrl+C`, đặt biến và nhập API key trong **cùng terminal**, rồi khởi chạy lại. Terminal chỉ chạy `command_cli` không truyền ngược biến môi trường sang command server.
-- `LLM plan remained invalid after one replan`: validator đã từ chối cả plan ban đầu và plan LLM tạo lại. Robot chưa chạy skill nào; đây không phải lỗi kết nối API/key và không cần restart Gazebo. Lưu log từ terminal launch để kiểm tra phản hồi/model 9Router. Không sửa tay plan rồi coi đó là kết quả LLM.
+- `LLM plan remained invalid after 2 replans`: validator đã từ chối plan ban đầu và hai plan LLM tạo lại. Robot chưa chạy skill nào; đây không phải lỗi kết nối API/key và không cần restart Gazebo. Lưu log từ terminal launch để kiểm tra phản hồi/model 9Router. Không sửa tay plan rồi coi đó là kết quả LLM.
 
 ## Robot skills và an toàn
 
