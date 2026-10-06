@@ -1,9 +1,0 @@
-string skill
-string object
-string zone
-bool check_revision
-uint64 expected_revision
----
-string status
-string message
-string state_json

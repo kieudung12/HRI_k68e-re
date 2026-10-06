@@ -1,168 +1,326 @@
-# Bài thực hành 02 — Điều khiển UR3e bằng LLM và Skill-based Planning
+# Bài thực hành 03 – LLM Skill Planning với Camera và Gripper
 
-Ứng dụng ROS 2 Humble điều khiển robot UR3e mô phỏng trong Gazebo Fortress. Người dùng nhập yêu cầu bằng tiếng Việt hoặc tiếng Anh; 9Router tạo kế hoạch từ các robot skill được cho phép. Bộ kiểm tra xác nhận toàn bộ kế hoạch và trạng thái trước khi executor gọi skill. MoveIt lập kế hoạch chuyển động có xét va chạm và gửi quỹ đạo tới robot trong mô phỏng.
+Project ROS 2 mô phỏng UR3e thực hiện nhiệm vụ phân loại các block màu trên bàn. Hệ thống sử dụng camera để nhận biết vị trí block và trạng thái zone, LLM để sinh kế hoạch ở mức skill, MoveIt 2 để lập quỹ đạo cho tay máy và Robotiq 2F-85 để gắp vật.
 
-| Nền tảng | Giá trị |
-|---|---|
-| ROS 2 | Humble |
-| Robot | UR3e, mô phỏng |
-| Simulator | Gazebo Fortress |
-| Motion planning | MoveIt 2 |
-| Branch nộp bài | [`assignments_2`](https://github.com/kieudung12/HRI_k68e-re/tree/assignments_2) |
+## 1. Nhiệm vụ
 
-**Video demo:** [Xem video trên Google Drive](https://drive.google.com/file/d/1UAMJkEeRDNFUcW8BTuO_tXGWOzOB_zph/view?usp=sharing)
+Mô hình gồm:
 
-![Kết quả thực thi lệnh tự nhiên trên CLI](assets/demo_terminal_success.png)
+- UR3e trong Gazebo Fortress / Gazebo Sim.
+- Gripper Robotiq 2F-85.
+- Một camera RGB cố định nhìn xuống bàn.
+- Năm block màu: `red_cube`, `yellow_cube`, `blue_cube`, `green_cube`, `purple_cube`.
+- Ba zone được đánh dấu trực quan là **A**, **B**, **C**, tương ứng với `zone_a`, `zone_b`, `zone_c`.
+- LLM lập kế hoạch từ câu lệnh tự nhiên như `Put the red cube in Zone B.`.
+- Camera cung cấp trạng thái môi trường cho planner và bộ thực thi.
 
-*CLI hiển thị kế hoạch, validation và kết quả thành công của từng skill.*
+Khi zone đích đang có block, hệ thống phải dọn zone trước rồi mới thực hiện `pick` và `place` cho block được yêu cầu.
 
-![UR3e trong Gazebo Fortress sau khi đặt red_cube vào Zone B](assets/demo_gazebo_red_zone_b.png)
+## 2. Kiến trúc hệ thống
 
-*Ảnh chụp sau khi lệnh tự nhiên hoàn thành; `zone_b` được chọn trong cây thực thể Gazebo.*
+```text
+Natural Language Command
+          |
+          v
+     LLM Planner
+          |
+          v
+    Structured JSON Plan
+          |
+          v
+      Plan Validator
+          |
+          v
+     Robot Skills
+       /       \
+      v         v
+  MoveIt 2   Gripper Controller
+       \       /
+        v     v
+          Gazebo
 
-## Nhiệm vụ sinh viên
-
-| Sinh viên | MSSV | XX | P = XX mod 6 |
-|---|---:|---:|---:|
-| Kieu Minh Dung | 23020729 | 29 | 5 |
-
-Mapping theo đề bài: **Zone A → Blue, Zone B → Yellow, Zone C → Red**. Mapping được tính từ [`config/student_config.yaml`](config/student_config.yaml) và được kiểm tra độc lập với đầu ra của LLM.
-
-## Thiết kế hệ thống
-
-```mermaid
-flowchart LR
-  U[Câu lệnh tiếng Việt / English] --> L[9Router LLM]
-  L --> P[JSON plan: pick / place / home]
-  P --> V[PlanValidator]
-  V -->|hợp lệ| E[SkillExecutor]
-  V -->|không hợp lệ| R[Từ chối, không chuyển động]
-  E --> S[RobotSkills ROS service]
-  S --> M[MoveIt 2]
-  M --> G[UR3e trong Gazebo]
-  S <--> C[SceneManager: MoveIt / Gazebo]
+Camera RGB
+    |
+    v
+  Perception (OpenCV HSV)
+    |
+    v
+/environment_state
+    |
+    +--> Plan Validator / Robot Skills
+    +--> /perception/debug_image
 ```
 
-LLM chỉ được chọn và sắp xếp ba skill: `pick(object)`, `place(object, zone)` và `home()`. Nó không tạo giá trị khớp, quỹ đạo, vận tốc, mã điều khiển hoặc lệnh controller. Trước khi chạy, `PlanValidator` kiểm tra schema chính xác, whitelist, thứ tự thao tác, trạng thái vật đang giữ, khay đã chiếm, mapping MSSV và trạng thái lỗi. Kế hoạch sai có thể được gửi lại cho LLM tối đa hai lần; mỗi kế hoạch mới vẫn phải qua validator. Kế hoạch rỗng là một yêu cầu từ chối và bị dừng ngay, không được tự bổ sung thao tác.
+LLM chỉ sinh các skill được phép. Validator kiểm tra cấu trúc kế hoạch, object, zone, thứ tự thao tác và trạng thái camera trước khi robot di chuyển.
 
-Các thành phần chính:
+## 3. Chức năng chính
 
-- `ur3_llm_control/llm_planner.py` — gửi yêu cầu tới 9Router và nhận JSON plan.
-- `ur3_llm_control/task_validator.py` — kiểm tra tính hợp lệ của plan và trạng thái.
-- `ur3_llm_control/skill_executor.py` — gọi từng skill theo thứ tự, dừng khi có lỗi.
-- `src/robot_skills_node.cpp` — triển khai các skill bằng MoveIt.
-- `src/scene_manager.cpp` — đồng bộ vật thể trong Gazebo và MoveIt Planning Scene.
+- Nhận ảnh từ camera RGB qua `/camera`.
+- Phân đoạn năm block theo màu bằng HSV, morphology và contour.
+- Tính vị trí block trên mặt bàn từ ảnh camera và mô hình chiếu cố định.
+- Xác định zone nào đang trống hoặc đang có block.
+- Xuất trạng thái môi trường dưới dạng JSON qua `/environment_state`.
+- Xuất ảnh debug có contour, centroid, tên block, zone và trạng thái xử lý.
+- Lập kế hoạch chuyển động bằng MoveIt 2.
+- Điều khiển gripper Robotiq qua `ros2_control`.
+- Xử lý zone bị chiếm bằng các vị trí tạm trên bàn.
+- Kiểm tra kế hoạch LLM trước khi thực thi.
 
-## Cài đặt và build
+## 4. Cấu trúc thư mục
 
-Máy cần Ubuntu 22.04, ROS 2 Humble, MoveIt 2, Gazebo Fortress và workspace UR đã cài trong `~/ros2_ws`. Các phụ thuộc nền tảng này không được cài lại bởi package bài tập.
-
-Clone đúng branch nộp bài vào workspace:
-
-```bash
-mkdir -p ~/HRI
-cd ~/HRI
-git clone -b assignments_2 --single-branch \
-  https://github.com/kieudung12/HRI_k68e-re.git ur3_LLM_b2
-cd ur3_LLM_b2
+```text
+ur3_b3/
+├── README.md
+└── src/ur3_b3/
+    ├── package.xml                  # Metadata và dependency của package
+    ├── setup.py                      # Cài package và console scripts
+    ├── setup.cfg
+    ├── resource/ur3_b3
+    ├── launch/
+    │   ├── sim.launch.py             # Gazebo, controller, bridge và perception
+    │   └── moveit.launch.py          # MoveIt 2 cho UR3e + Robotiq
+    ├── config/
+    │   ├── controllers.yaml          # ros2_control và tham số chuyển động
+    │   └── ur3e_robotiq.srdf.xacro   # Nhóm MoveIt và collision rules
+    ├── urdf/
+    │   └── ur3e_robotiq.urdf.xacro   # UR3e, adapter và gripper Robotiq
+    ├── worlds/
+    │   └── table.sdf                 # Bàn, zone, block và camera
+    └── ur3_b3/
+        ├── perception.py             # Nhận dạng block từ ảnh camera
+        ├── planner.py                # Gọi LLM và validate plan
+        ├── skills.py                 # IK, MoveIt, gripper và staging
+        └── task.py                   # CLI entry point
 ```
 
-Sau đó build package:
+Các thư mục sinh tự động như `build/`, `install/` và `log/` không thuộc mã nguồn cần theo dõi trên Git.
+
+## 5. Yêu cầu môi trường
+
+- Ubuntu 22.04.
+- ROS 2 Humble.
+- Gazebo Fortress / Gazebo Sim 6.
+- MoveIt 2.
+- `ur_description` và `ur_simulation_gz`.
+- `robotiq_description`.
+- `ros_gz_sim` và `ros_gz_bridge`.
+- `controller_manager` và `gripper_controllers`.
+- OpenCV, `cv_bridge`, NumPy, PyYAML và Python `requests`.
+- Một endpoint LLM tương thích OpenAI Chat Completions nếu chạy chế độ LLM.
+
+Các package UR, Robotiq và `ros_gz` cần được build trong một workspace dependency, sau đó source workspace đó trước khi build project này. Trong các lệnh dưới đây workspace dependency được minh họa là `~/ros2_ws`.
+
+## 6. Build
 
 ```bash
 source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
+
+cd ~/HRI/ur3_b3
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-Sau khi clone repository, cần build package trước khi chạy.
+Nếu thay đổi `config/controllers.yaml`, hãy build lại và source `install/setup.bash` trước khi chạy task.
 
-## Chạy demo
+## 7. Chạy mô phỏng
 
-### 1. Khởi động 9Router
+Nên dùng hai terminal và chỉ chạy một instance MoveIt 2.
 
-Mở 9Router và xác nhận API tương thích OpenAI đang lắng nghe tại `http://localhost:20128/v1`. Trong terminal dùng để khởi chạy ROS, cấu hình endpoint và model rồi nhập API key khi được hỏi:
-
-```bash
-export NINEROUTER_BASE_URL=http://localhost:20128/v1
-export NINEROUTER_MODEL=ag/gemini-3.8-flash-medium
-read -rsp '9Router API key: ' NINEROUTER_API_KEY; echo
-export NINEROUTER_API_KEY
-```
-
-Khi gõ hoặc dán key ở dấu nhắc `read -rsp`, terminal không hiển thị ký tự; nhấn Enter sau khi dán. Không ghi key vào mã nguồn, README, YAML hoặc tham số dòng lệnh. Các biến phải được đặt trong terminal chạy command server; export trong terminal client không truyền ngược sang server đã chạy.
-
-### 2. Terminal 1 — khởi động robot và giao diện
+### Terminal 1: Gazebo, controller, camera bridge và perception
 
 ```bash
-cd ~/HRI/ur3_LLM_b2
 source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
-source install/setup.bash
-ros2 launch ur3_llm_control llm_robot.launch.py
+source ~/HRI/ur3_b3/install/setup.bash
+
+ros2 launch ur3_b3 sim.launch.py gui:=true
 ```
 
-Chạy lệnh này từ terminal đã cấu hình đủ ba biến 9Router. Chờ log xác nhận robot và scene đã sẵn sàng. Gazebo GUI và RViz được mở mặc định. Chỉ chạy một stack trên mỗi ROS domain.
+Đặt `gui:=false` nếu chỉ cần chạy mô phỏng không mở giao diện Gazebo.
 
-### 3. Terminal 2 — gửi câu lệnh tự nhiên
-
-Mở terminal mới và source workspace:
+### Terminal 2: MoveIt 2
 
 ```bash
-cd ~/HRI/ur3_LLM_b2
 source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
-source install/setup.bash
+source ~/HRI/ur3_b3/install/setup.bash
+
+ros2 launch ur3_b3 moveit.launch.py
 ```
 
-Gửi yêu cầu tiếng Anh hoặc tiếng Việt:
+Sau khi khởi động, mô phỏng có UR3e, Robotiq 2F-85, bàn, năm block, ba zone và camera overhead. Không chạy đồng thời nhiều `moveit.launch.py` vì sẽ tạo nhiều action server `/execute_trajectory`.
+
+## 8. Kiểm tra camera và perception
+
+Camera được bridge vào các topic:
 
 ```bash
-ros2 run ur3_llm_control command_cli 'Please put the red cube in zone B.'
-ros2 run ur3_llm_control command_cli 'Đưa khối màu đỏ vào vùng B.'
+ros2 topic list -t | grep camera
+ros2 topic hz /camera
+ros2 topic hz /camera_info
+ros2 topic echo --once /camera --field width
 ```
 
-Ví dụ với nhiệm vụ sinh viên:
+Mở ảnh debug:
 
 ```bash
-ros2 run ur3_llm_control command_cli --student-task \
-  'Arrange all objects according to my student ID.'
+ros2 run rqt_image_view rqt_image_view /perception/debug_image
 ```
 
-CLI trình bày lệnh, kế hoạch, kết quả validation, trạng thái từng skill và trạng thái cuối. Với yêu cầu đặt khối đỏ vào B, plan hợp lệ có dạng:
+Theo dõi trạng thái môi trường:
+
+```bash
+ros2 topic echo /environment_state
+```
+
+`/perception/debug_image` hiển thị ảnh camera, contour, bounding box, centroid, tên block, đường viền zone và trạng thái `COMPLETE` hoặc `INCOMPLETE`.
+
+`/environment_state` chứa vị trí nhìn thấy của từng block, trạng thái các zone, danh sách block chưa nhìn thấy và nguồn dữ liệu `camera_rgb_hsv`. Planner chỉ chấp nhận state hoàn chỉnh; vị trí block không được lấy trực tiếp từ entity pose của Gazebo.
+
+## 9. Chạy nhiệm vụ bằng LLM
+
+Đặt endpoint và model LLM. Ví dụ với dịch vụ 9Router chạy local:
+
+```bash
+export NINEROUTER_BASE_URL='http://localhost:20128/v1'
+export NINEROUTER_MODEL='ag/gemini-3.8-flash-medium'
+
+ros2 run ur3_b3 task \
+  --command 'Put the red cube in Zone B.'
+```
+
+Luồng xử lý:
+
+1. Đọc state mới nhất từ camera.
+2. Gửi câu lệnh và state cho LLM.
+3. Nhận JSON gồm các skill `clear_zone`, `pick`, `place`, `home`.
+4. Validate toàn bộ plan.
+5. Thực thi plan bằng MoveIt 2 và gripper.
+
+Có thể xem plan mà không thực thi bằng `--dry-run`:
+
+```bash
+ros2 run ur3_b3 task \
+  --command 'Put the red cube in Zone B.' \
+  --dry-run
+```
+
+### API key
+
+Nếu chưa có `NINEROUTER_API_KEY`, node sẽ hỏi key trong terminal. Sau request thành công, key được lưu tại:
 
 ```text
-1. pick(red_cube)
-2. place(red_cube, zone_b)
-3. home()
+~/.config/ur3_b3/9router_api_key
 ```
 
-`home()` đưa robot về tư thế `up` đã cấu hình và là bước cuối bắt buộc theo hợp đồng plan của bài.
-
-Khi thực thi thành công, CLI hiển thị kế hoạch do LLM sinh, trạng thái từng skill và kết thúc bằng `TASK SUCCESS`.
-
-## An toàn chuyển động và giới hạn mô phỏng
-
-MoveIt chịu trách nhiệm IK, lập kế hoạch và kiểm tra va chạm. Các đoạn Cartesian chỉ được thực thi khi đường đi đạt điều kiện đầy đủ và vượt kiểm tra joint jump. Executor dừng tại skill đầu tiên thất bại. Cấu hình ưu tiên đường đi ngắn, có kiểm tra va chạm; project không tuyên bố tối ưu quỹ đạo toàn cục.
-
-**Thao tác gắp là virtual grasp.** Mô hình UR3e hiện không có bộ điều khiển gripper vật lý. Khi gắp, MoveIt gắn cube vào `tool0` bằng `moveit_msgs/AttachedCollisionObject`; pose cube trong Gazebo được đồng bộ theo TCP. Mô phỏng này biểu diễn trạng thái đang giữ vật, không mô phỏng lực kẹp, ma sát, trượt hoặc gripper vật lý.
-
-Scene và kích thước bàn, khối, khay được khai báo trong [`config/scene.yaml`](config/scene.yaml). Nếu một phép hoán đổi cần dùng khay tạm nhưng mọi khay đều đã có vật, bộ skill hiện tại không có vùng staging; validator sẽ từ chối kế hoạch trước khi robot chuyển động.
-
-## Reset scene
-
-Sau khi không còn vật được giữ và scene chưa fault, đưa robot về home và cube về vị trí nguồn mà không restart Gazebo:
+File được tạo với quyền `600`. Có thể chỉ định vị trí khác bằng:
 
 ```bash
-ros2 run ur3_llm_control command_cli --reset-scene
+export NINEROUTER_KEY_FILE='/path/to/key'
 ```
 
-Đây là tiện ích reset xác định, không gọi LLM và không phải robot skill.
+Hoặc đặt key trực tiếp trong phiên làm việc:
 
-## Tài liệu tham khảo kỹ thuật
+```bash
+export NINEROUTER_API_KEY='YOUR_KEY'
+```
 
-- [ROS 2 Humble](https://docs.ros.org/en/humble/)
-- [MoveIt 2](https://moveit.picknik.ai/humble/)
-- [Gazebo Fortress](https://gazebosim.org/docs/fortress/)
-- [Universal Robots ROS 2](https://github.com/UniversalRobots/Universal_Robots_ROS2_GZ_Simulation/tree/humble)
+## 10. Robot skills
+
+| Skill | Vai trò |
+| --- | --- |
+| `home` | Đưa tay máy về tư thế home sau khi hoàn tất thao tác. |
+| `pick` | Đọc vị trí block từ camera, mở gripper, tiếp cận, gắp và nâng block. |
+| `place` | Di chuyển đến zone hoặc vị trí tạm, mở gripper, nâng tay và xác nhận bằng camera. |
+| `clear_zone` | Tìm block đang chiếm zone, chọn vị trí tạm còn trống rồi chuyển block ra ngoài. |
+| `find_free_position` | Skill nội bộ chọn staging cell không bị chiếm và có thể tiếp cận bằng MoveIt. |
+
+Các vị trí tạm được kiểm tra theo cả `environment_state` và khả năng lập kế hoạch tới hover pose. Mục tiêu là hỗ trợ nhiều block phải di chuyển trước khi đặt block yêu cầu.
+
+## 11. Topic và interface quan trọng
+
+| Topic / interface | Kiểu | Vai trò |
+| --- | --- | --- |
+| `/camera` | `sensor_msgs/msg/Image` | Ảnh RGB đầu vào từ camera. |
+| `/camera_info` | `sensor_msgs/msg/CameraInfo` | Tham số camera dùng khi quy đổi pixel sang mặt bàn. |
+| `/perception/debug_image` | `sensor_msgs/msg/Image` | Ảnh đã vẽ kết quả perception. |
+| `/environment_state` | `std_msgs/msg/String` | JSON về block, zone, missing và trạng thái hoàn chỉnh. |
+| `/joint_states` | `sensor_msgs/msg/JointState` | Trạng thái joint của arm và gripper. |
+| `/gripper_controller/follow_joint_trajectory` | `control_msgs/action/FollowJointTrajectory` | Điều khiển đóng/mở Robotiq. |
+| `/compute_ik` | `moveit_msgs/srv/GetPositionIK` | Kiểm tra IK cho pose tiếp cận. |
+| `/compute_cartesian_path` | `moveit_msgs/srv/GetCartesianPath` | Tạo đoạn tiếp cận và rút tay theo Cartesian path. |
+| `/plan_kinematic_path` | `moveit_msgs/srv/GetMotionPlan` | Lập kế hoạch tới hover pose. |
+| `/execute_trajectory` | `moveit_msgs/action/ExecuteTrajectory` | Thực thi quỹ đạo arm qua MoveIt. |
+
+## 12. Tham số chính
+
+Các tham số chạy hiện tại nằm trong [`src/ur3_b3/config/controllers.yaml`](src/ur3_b3/config/controllers.yaml):
+
+```yaml
+robot_skills:
+  ros__parameters:
+    velocity_scaling: 0.2
+    acceleration_scaling: 0.1
+    gripper_motion_time: 3.0
+    gripper_close_position: 0.52
+```
+
+- `velocity_scaling`: hệ số tốc độ lập kế hoạch cho arm.
+- `acceleration_scaling`: hệ số gia tốc lập kế hoạch cho arm.
+- `gripper_motion_time`: thời gian gửi trajectory đóng/mở gripper, tính bằng giây.
+- `gripper_close_position`: vị trí đóng knuckle của Robotiq; giá trị hiện tại được cân chỉnh cho block 35 mm.
+
+Giá trị nhỏ hơn của hai hệ số đầu làm chuyển động arm chậm hơn. Sau khi đổi YAML, cần build lại package và source `install/setup.bash`.
+
+## 13. Kịch bản kiểm thử
+
+### 13.1. Camera
+
+- Khởi động mô phỏng và mở `/perception/debug_image`.
+- Kiểm tra năm block được nhận dạng theo màu.
+- Di chuyển một block vào zone A, B hoặc C trong Gazebo.
+- Theo dõi `/environment_state` để kiểm tra `location` của block và occupant của zone thay đổi theo ảnh camera.
+
+### 13.2. Gripper
+
+- Kiểm tra gripper mở trước thao tác `pick`.
+- Quan sát hai pad tiếp xúc với hai mặt bên của block.
+- Kiểm tra arm nâng block sau khi `close_gripper()` hoàn tất.
+- Theo dõi `/joint_states` nếu cần kiểm tra vị trí knuckle.
+
+### 13.3. Zone đích đang bị chiếm
+
+Ví dụ zone B đang có `blue_cube`, người dùng yêu cầu:
+
+```text
+Put the red cube in Zone B.
+```
+
+Kế hoạch hợp lệ cần có dạng:
+
+```json
+{
+  "plan": [
+    {"skill": "clear_zone", "zone": "zone_b"},
+    {"skill": "pick", "object": "red_cube"},
+    {"skill": "place", "object": "red_cube", "target": "zone_b"},
+    {"skill": "home"}
+  ]
+}
+```
+
+Trong đó `clear_zone` sẽ:
+
+1. Nhận biết occupant của zone B từ camera.
+2. Tìm một staging cell còn trống và có thể tiếp cận.
+3. Gắp `blue_cube` và đặt ra vị trí tạm.
+4. Cho phép plan tiếp tục gắp `red_cube`.
+5. Đặt `red_cube` vào zone B và đưa arm về `home`.
+
+## 14. Giới hạn hiện tại
+
+- Perception dựa trên màu HSV và phù hợp với bối cảnh block màu đơn giản.
+- Camera có vị trí cố định và phép chiếu mặt bàn được hiệu chỉnh cho world hiện tại.
+- Vị trí tạm là các staging cell được khai báo trong `skills.py`, nên vẫn phụ thuộc kích thước bàn và workspace của robot.
+

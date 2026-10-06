@@ -1,6 +1,0 @@
-string command
-bool student_task
-bool dry_run
----
-string status
-string report_json
