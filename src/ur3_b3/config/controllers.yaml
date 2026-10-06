@@ -1,0 +1,65 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 250
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    joint_trajectory_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    gripper_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+# Motion limits used by ur3_b3/skills.py.  Keep these in the same YAML file as
+# ros2_control so the arm speed can be changed without editing Python code.
+# Values are MoveIt scaling factors in the range (0.0, 1.0].
+robot_skills:
+  ros__parameters:
+    velocity_scaling: 0.2
+    acceleration_scaling: 0.1
+    gripper_motion_time: 3.0
+    gripper_close_position: 0.52
+
+joint_trajectory_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    state_publish_rate: 50.0
+    action_monitor_rate: 20.0
+    constraints:
+      stopped_velocity_tolerance: 0.2
+      goal_time: 1.0
+      shoulder_pan_joint: {trajectory: 0.3, goal: 0.05}
+      shoulder_lift_joint: {trajectory: 0.3, goal: 0.05}
+      elbow_joint: {trajectory: 0.3, goal: 0.05}
+      wrist_1_joint: {trajectory: 0.3, goal: 0.05}
+      wrist_2_joint: {trajectory: 0.3, goal: 0.05}
+      wrist_3_joint: {trajectory: 0.3, goal: 0.05}
+
+gripper_controller:
+  ros__parameters:
+    joints:
+      - robotiq_85_left_knuckle_joint
+      - robotiq_85_right_knuckle_joint
+      - robotiq_85_left_inner_knuckle_joint
+      - robotiq_85_right_inner_knuckle_joint
+      - robotiq_85_left_finger_tip_joint
+      - robotiq_85_right_finger_tip_joint
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    state_publish_rate: 50.0
+    action_monitor_rate: 20.0
+    constraints:
+      stopped_velocity_tolerance: 0.3
+      goal_time: 1.0
+      robotiq_85_left_knuckle_joint: {trajectory: 0.3, goal: 0.15}
+      robotiq_85_right_knuckle_joint: {trajectory: 0.3, goal: 0.15}
+      robotiq_85_left_inner_knuckle_joint: {trajectory: 0.3, goal: 0.06}
+      robotiq_85_right_inner_knuckle_joint: {trajectory: 0.3, goal: 0.06}
+      robotiq_85_left_finger_tip_joint: {trajectory: 0.3, goal: 0.06}
+      robotiq_85_right_finger_tip_joint: {trajectory: 0.3, goal: 0.06}
