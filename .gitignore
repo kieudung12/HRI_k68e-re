@@ -1,0 +1,26 @@
+/build/
+/install/
+/log/
+/.runtime/
+__pycache__/
+*.py[cod]
+*.bag
+*.db3
+*.mcap
+*.mp4
+*.mkv
+*.webm
+*.avi
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+.vscode/
+
+# Ignore evidence, reports, and miscellaneous media/images
+/evidence/
+/src/lec4_robot_lab/docs/
+*.png
+*.jpg
+*.jpeg
