@@ -1,0 +1,15 @@
+# Map-frame goals copied from the successful Nav2 runs recorded in lec4.
+# yaw is in radians. Edit these after surveying points with RViz Publish Point.
+goals:
+  - name: Goal 1
+    x: -1.00
+    y: 1.10
+    yaw: 0.29
+  - name: Goal 2
+    x: 1.01
+    y: 1.07
+    yaw: 0.28
+  - name: Goal 3
+    x: 1.02
+    y: -1.07
+    yaw: -0.34
