@@ -26,10 +26,7 @@ Package `b5_tb4_lab` thực hiện các nội dung của bài thực hành:
 └── b5/                                # Clone từ branch assignments_5
     ├── README.md
     ├── LICENSE
-    ├── process.md                    # Nhật ký công việc, lỗi và kiểm thử
     ├── b5_env.bash                   # Nạp runtime lec4 và overlay B5
-    ├── evidence/
-    │   └── yolo_chair_detection.jpg
     └── src/b5_tb4_lab/
         ├── package.xml
         ├── setup.py
@@ -215,7 +212,7 @@ Ultralytics tải `yolov8n.pt` nếu file chưa có; lần chạy đầu cần I
 ros2 run b5_tb4_lab autonomous_yolo --ros-args -p use_sim_time:=true -p image_topic:=/oakd/rgb/preview/image_raw -p display:=true -p model:=yolov8s.pt -p confidence:=0.20
 ```
 
-Model lớn hơn có thể cải thiện nhận diện nhưng xử lý chậm hơn trên CPU. `confidence` chỉ lọc detection, không làm tăng score đầu ra. Score còn phụ thuộc góc nhìn và hình dạng vật thể; ghế SDF đơn giản có thể không được phát hiện trong mọi frame. Ảnh minh họa: [YOLO phát hiện ghế](evidence/yolo_chair_detection.jpg).
+Model lớn hơn có thể cải thiện nhận diện nhưng xử lý chậm hơn trên CPU. `confidence` chỉ lọc detection, không làm tăng score đầu ra. Score còn phụ thuộc góc nhìn và hình dạng vật thể; ghế SDF đơn giản có thể không được phát hiện trong mọi frame.
 
 **Quay video nộp bài:**
 
@@ -317,5 +314,3 @@ ros2 topic info /scan_amcl --verbose
 ```
 
 Các lệnh theo dõi liên tục cần chạy ở terminal riêng và dừng bằng `Ctrl+C`. AMCL trong `lec4` nhận `/scan_amcl`, dùng ngưỡng cập nhật chuyển động 0,25 m hoặc 0,2 rad. Đây là ngưỡng kích hoạt cập nhật, không phải mức sai số localization cho phép. Cần kiểm tra pose, TF/timestamp, đúng map/world và tải xử lý trước khi kết luận nguyên nhân scan lệch hoặc chỉnh tham số.
-
-Nhật ký công việc và các kết quả kiểm thử được lưu trong [process.md](process.md). Ảnh evidence là minh chứng tĩnh; cần quay video riêng để thể hiện đầy đủ quá trình localization và điều hướng.
