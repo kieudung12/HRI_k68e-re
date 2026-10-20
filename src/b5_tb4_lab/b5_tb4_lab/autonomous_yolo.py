@@ -33,6 +33,8 @@ class YoloCameraNode(Node):
         self.display = bool(self.get_parameter('display').value)
         self.last_inference = 0.0
         self.window_created = False
+        self.frame_lock = threading.Lock()
+        self.latest_frame = None
         self.model = None
         try:
             from ultralytics import YOLO
@@ -72,6 +74,9 @@ class YoloCameraNode(Node):
             out_msg = self.bridge.cv2_to_imgmsg(annotated, encoding='bgr8')
             out_msg.header = msg.header
             self.publisher.publish(out_msg)
+            if self.display:
+                with self.frame_lock:
+                    self.latest_frame = annotated
 
             boxes = result.boxes
             if boxes is None or len(boxes) == 0:
@@ -85,18 +90,25 @@ class YoloCameraNode(Node):
                     label = f'{names[class_id]} ({confidence:.2f})'
                     labels.append(label)
                 self.get_logger().info('YOLO detections: ' + ', '.join(labels))
-
-            if self.display:
-                import cv2
-                window_name = 'TurtleBot 4 YOLO detections'
-                if not self.window_created:
-                    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-                    cv2.resizeWindow(window_name, 960, 720)
-                    self.window_created = True
-                cv2.imshow(window_name, annotated)
-                cv2.waitKey(1)
         except Exception as exc:
             self.get_logger().error(f'Image inference failed: {exc}')
+
+    def show_latest_frame(self):
+        """Run OpenCV's GUI event loop exclusively on the main thread."""
+        if not self.display:
+            return
+        with self.frame_lock:
+            frame = self.latest_frame
+        if frame is None:
+            return
+        import cv2
+        window_name = 'TurtleBot 4 YOLO detections'
+        if not self.window_created:
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(window_name, 960, 720)
+            self.window_created = True
+        cv2.imshow(window_name, frame)
+        cv2.waitKey(1)
 
     def close_window(self):
         if self.window_created:
@@ -127,9 +139,46 @@ def make_pose(navigator, goal):
     return pose
 
 
+def navigate_goals(navigator, goals_file, stop_requested, navigation_done):
+    """Run blocking Commander calls without blocking the desktop event loop."""
+    try:
+        goals = load_goals(goals_file)
+        navigator.get_logger().info(
+            'Waiting for AMCL initial pose and active Nav2 lifecycle nodes. '
+            'Set the initial pose in RViz and wait for the laser scan to align.')
+        navigator.waitUntilNav2Active()
+
+        for index, goal in enumerate(goals, start=1):
+            if stop_requested.is_set():
+                return
+            name = str(goal.get('name', f'Goal {index}'))
+            navigator.get_logger().info(
+                f'Sending {name}: x={float(goal["x"]):.2f}, '
+                f'y={float(goal["y"]):.2f}, yaw={float(goal["yaw"]):.2f} rad')
+            navigator.goToPose(make_pose(navigator, goal))
+            while not navigator.isTaskComplete():
+                if stop_requested.is_set():
+                    navigator.cancelTask()
+                    navigator.get_logger().warn('Interrupted; current navigation task canceled.')
+                    return
+                time.sleep(0.1)
+            result = navigator.getResult()
+            if result == TaskResult.SUCCEEDED:
+                navigator.get_logger().info(f'{name} reached successfully.')
+            else:
+                navigator.get_logger().error(
+                    f'{name} did not succeed (Nav2 result: {result}); stopping goal sequence.')
+                break
+    except Exception as exc:
+        if not stop_requested.is_set() and rclpy.ok():
+            navigator.get_logger().error(f'Autonomous navigation stopped: {exc}')
+    finally:
+        navigation_done.set()
+
+
 def main(args=None):
-    # Keep the context alive while KeyboardInterrupt is handled so we can
-    # cancel the active Nav2 action before shutting ROS down.
+    # HighGUI stays on the main thread; ROS inference and blocking Nav2
+    # calls run separately so the camera remains visible while Nav2 waits.
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
     camera = YoloCameraNode()
     executor = MultiThreadedExecutor(num_threads=2)
@@ -139,41 +188,33 @@ def main(args=None):
 
     navigator = BasicNavigator()
     goals_file = get_package_share_directory('b5_tb4_lab') + '/config/goals.yaml'
+    stop_requested = threading.Event()
+    navigation_done = threading.Event()
+    navigation_thread = threading.Thread(
+        target=navigate_goals,
+        args=(navigator, goals_file, stop_requested, navigation_done),
+        daemon=True,
+    )
+    navigation_thread.start()
     try:
-        goals = load_goals(goals_file)
-        navigator.get_logger().info(
-            'Waiting for AMCL initial pose and active Nav2 lifecycle nodes. '
-            'Set the initial pose in RViz and wait for the laser scan to align.')
-        navigator.waitUntilNav2Active()
-
-        for index, goal in enumerate(goals, start=1):
-            name = str(goal.get('name', f'Goal {index}'))
-            navigator.get_logger().info(
-                f'Sending {name}: x={float(goal["x"]):.2f}, '
-                f'y={float(goal["y"]):.2f}, yaw={float(goal["yaw"]):.2f} rad')
-            navigator.goToPose(make_pose(navigator, goal))
-            while not navigator.isTaskComplete():
-                time.sleep(0.1)
-            result = navigator.getResult()
-            if result == TaskResult.SUCCEEDED:
-                navigator.get_logger().info(f'{name} reached successfully.')
-            else:
-                navigator.get_logger().error(
-                    f'{name} did not succeed (Nav2 result: {result}); stopping goal sequence.')
-                break
+        while rclpy.ok() and not navigation_done.is_set():
+            camera.show_latest_frame()
+            time.sleep(0.02)
     except KeyboardInterrupt:
-        if rclpy.ok():
-            navigator.cancelTask()
-            navigator.get_logger().warn('Interrupted; current navigation task canceled.')
-    except Exception as exc:
-        navigator.get_logger().error(f'Autonomous navigation stopped: {exc}')
+        stop_requested.set()
     finally:
-        camera.close_window()
+        stop_requested.set()
+        # Allow a live goal to be canceled. Context shutdown releases a
+        # lifecycle-service wait if Nav2 has not started yet.
+        navigation_thread.join(timeout=3.0)
         executor.shutdown(timeout_sec=2.0)
-        camera.destroy_node()
-        navigator.destroy_node()
+        camera_thread.join(timeout=2.0)
+        camera.close_window()
         if rclpy.ok():
             rclpy.shutdown()
+        navigation_thread.join(timeout=2.0)
+        camera.destroy_node()
+        navigator.destroy_node()
 
 
 if __name__ == '__main__':

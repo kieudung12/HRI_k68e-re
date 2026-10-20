@@ -126,7 +126,7 @@ Dependency tham khảo: `ros-humble-turtlebot4-navigation`, `ros-humble-nav2-sim
 - Xác nhận repository đang Public qua GitHub CLI. Remote branch `assignments_5` tồn tại nhưng hiện đang chứa package UR3 của bài khác; chuẩn bị thay nội dung root bằng B5 để branch và trang repository khớp đúng bài nộp. Lịch sử commit trước vẫn được giữ.
 - Dùng clone tạm độc lập vì `/home/kieu/HRI` không phải git repo, B5 nằm ngoài git repo lec4, còn `lec4` đang có nhiều thay đổi staged không liên quan. Không đưa thay đổi lec4 vào commit.
 - Tôn trọng `.gitignore` của B5 (`*.pt`): README được sửa để nói Ultralytics tải `yolov8n.pt`/`yolov8s.pt` tự động khi cần; không commit model weights nhị phân. Cặp map, source package, launch, config, README, process log và ảnh evidence được giữ trong payload B5.
-- Đã commit và push B5 lên `origin/assignments_5`; GitHub xác nhận cập nhật từ `c997f54` lên `37199f5`. Repository được xác nhận Public. Không chạy build/test trong phiên publish này.
+- Đã commit và push B5 lên `origin/assignments_5`; bản đầu là `37199f5`, sau khi bổ sung log đã amend và push thành `79d5536`. Repository được xác nhận Public. Không chạy build/test trong phiên publish này.
 
 ## Phiên làm việc — 2026-10-20 (làm rõ cửa sổ camera ở terminal 3)
 
@@ -140,3 +140,15 @@ Dependency tham khảo: `ros-humble-turtlebot4-navigation`, `ros-humble-nav2-sim
 - Người dùng gửi ảnh desktop: terminal có log `b5_yolo_camera` nhưng không thấy cửa sổ preview. Lệnh đang chọn trong IDE chỉ truyền `image_topic`; trong code `display` mặc định là `false`, nên YOLO vẫn subscribe/inference/log nhưng không gọi `imshow`.
 - README hiện tại đã có `display:=true`, nhưng để tránh sao chép nhầm lệnh cũ, đổi lệnh chính thành một dòng và thêm cảnh báo rõ rằng thiếu `display:=true` sẽ không mở cửa sổ.
 - Cách chạy đúng: `ros2 run b5_tb4_lab autonomous_yolo --ros-args -p image_topic:=/oakd/rgb/preview/image_raw -p display:=true` trong terminal desktop đã source `b5_env.bash`.
+
+## Phiên làm việc — 2026-10-20 (rà soát trước lần push tiếp theo)
+
+- Người dùng yêu cầu kiểm tra kỹ lại source và README rồi push cập nhật lên GitHub.
+- Đã đối chiếu README với node, hai launch, setup/package metadata, cấu hình goals, map và runtime lec4. Branch remote `assignments_4` có đầy đủ runtime; các file environment, setup_runtime, AMCL/Nav2, RViz và launch được đối chiếu byte với local và đều trùng khớp (commit lec4 được kiểm tra: `997f251`).
+- Các điểm cần bổ sung/sửa: lệnh clone dependency lec4; ROS simulation time trong lệnh node; phân biệt executable với node `basic_navigator` và `b5_yolo_camera`; đường relay `/initialpose_rviz → /initialpose`; Publish Point không cung cấp yaw; cửa sổ camera kết thúc cùng chương trình; quy trình quay video bắt đầu trước nạp map/Initial Pose.
+- Build `colcon build --packages-select b5_tb4_lab --symlink-install` thành công (1 package). Đã kiểm tra cú pháp 14 khối lệnh Bash trong README, Python/XML, link file nội bộ, launch argument generation và các map/goal/world/launch assets được cài; đều đạt.
+- Phát hiện lỗi thực khi smoke GUI cũ: node có tạo cửa sổ và publish ảnh nhưng tiến trình không thoát, bị timeout sau 35 giây. Đã chuyển toàn bộ OpenCV HighGUI sang luồng chính, giữ inference và các lệnh Nav2 blocking trên các luồng riêng; dùng event để dừng/hủy goal trước cleanup. Bổ sung dependency trực tiếp `ros_gz_sim` trong package metadata.
+- Kiểm thử console entrypoint thực với YOLOv8n, ảnh RGB tổng hợp 320x240, cửa sổ desktop thật và ROS domain riêng 192 (không gửi lệnh cho robot mô phỏng đang mở): (1) ảnh được đổi bgr8/publish, giữ header và hiện cửa sổ trong lúc chưa có Nav2; Ctrl+C thoát sạch; (2) lifecycle/action Nav2 giả lập nhận đúng ba goal theo thứ tự, frame map và timestamp simulation 42 s, có đủ ba log reached và đóng cửa sổ/thoát mã 0; (3) Ctrl+C khi goal đang chạy gửi cancel, không gửi goal tiếp và thoát mã 0. Cả ba trường hợp đều đạt sau sửa, không có traceback.
+- Hai map B5 được so sánh byte với branch Public `assignments_4` và trùng khớp. Ba goal nằm trong ô free; khoảng cách 2D xấp xỉ tới ô không free gần nhất lần lượt 0.77/0.69/0.68 m. Đây chỉ là kiểm tra vị trí goal, không xác nhận lại đường đi không va chạm trong Gazebo.
+- README giữ đúng bảy mục người dùng yêu cầu; thêm clone lec4/B5, lệnh simulation time, giải thích quaternion/yaw, node/topic/relay thực tế, cách quay đủ bước nạp map/localization và vòng đời cửa sổ camera. Dùng các phiên bản NumPy/OpenCV/Ultralytics đang cài để hạn chế khác biệt dependency.
+- GitHub được xác nhận vẫn Public. Chuẩn bị commit cập nhật README/source/metadata/process vào branch `assignments_5` bằng checkout riêng, giữ nguyên working tree lec4. Không chạy lại toàn bộ mô phỏng Gazebo trong lần rà này; ba goal ở kiểm thử mới là action giả lập.
