@@ -1,263 +1,170 @@
-# Vẽ chữ D bằng Cartesian (tọa độ Descartes) với ROS 2 và MoveIt 2
+# Bài thực hành 06 — TurtleBot 4 điều khiển bằng cử chỉ tay
 
-**Tương tác Người–Robot — Bài thực hành 01**
-Điều khiển robot UR3e viết chữ **D** trong Gazebo bằng ROS 2 Humble và MoveIt 2.
+Workspace B6 dùng lại world và launch mô phỏng trong `../lec4`. Webcam laptop cung cấp ảnh cho OpenCV và MediaPipe Gesture Recognizer; node `gesture_recognition_node` nhận diện cử chỉ và publish `/detected_gesture`. Node `robot_behavior_node` chờ xác nhận bằng ngón cái rồi điều khiển TurtleBot 4 qua `/cmd_vel` trong Gazebo.
 
-Chữ D là chữ cái đầu trong tên **Dũng**. Gói phần mềm này minh họa cách xây dựng
-các `waypoint` (điểm mốc), lập kế hoạch chuyển động bằng MoveIt 2 và thực thi
-`trajectory` (quỹ đạo) thông qua `joint_trajectory_controller` (bộ điều khiển
-quỹ đạo khớp).
+Mã B6 trên nhánh `assignments_6` nằm trong thư mục `b6/`. Khi lấy mã về máy, đặt workspace này tại `~/HRI/b6`, cạnh workspace mô phỏng `~/HRI/lec4` đã build từ bài trước.
 
-## 1. Mục tiêu
-
-Mục tiêu của bài là làm quen với chuỗi xử lý điều khiển robot công nghiệp:
-
-- mô phỏng UR3e trong Gazebo Fortress;
-- nhận trạng thái khớp và TF từ môi trường mô phỏng;
-- dùng MoveIt 2 để giải `inverse kinematics` (động học ngược), lập kế hoạch
-  chuyển động và `collision checking` (kiểm tra va chạm);
-- chuyển các waypoint Cartesian của chữ D thành quỹ đạo khớp;
-- quan sát robot và đường đi của TCP trong RViz.
-
-Robot thực hiện một lần theo trình tự:
+## Cấu trúc
 
 ```text
-READY → HOVER → PEN DOWN → LETTER D → PEN UP
-```
-
-## 2. Kiến trúc hệ thống
-
-```mermaid
-flowchart TD
-    A[Tệp launch] --> B[Mô phỏng UR3e trong Gazebo]
-    B --> C[Bộ điều khiển ros2_control]
-    C --> D[Trạng thái khớp và TF]
-    D --> E[MoveIt 2 / move_group]
-    F[draw_letter_d_node] --> G[Waypoint Cartesian]
-    G --> E
-    E --> H[JointTrajectory]
-    H --> I[joint_trajectory_controller]
-    I --> B
-    D --> F
-    F --> J[Marker /drawing_path]
-    J --> K[RViz]
-```
-
-`draw_letter_d.launch.py` khởi động môi trường mô phỏng, bộ điều khiển, MoveIt,
-RViz và nút vẽ theo đúng thứ tự phụ thuộc. Phần `controller recovery` (khôi
-phục bộ điều khiển) chờ `joint_state_broadcaster` và
-`joint_trajectory_controller` ở trạng thái `active` trước khi cho nút bắt đầu
-lập kế hoạch.
-
-## 3. Trình tự chuyển động
-
-| Trạng thái | Ý nghĩa |
-|---|---|
-| `READY` | Phần khôi phục giữ robot ở tư thế khởi động an toàn. |
-| `HOVER` | MoveIt giải IK và lập kế hoạch trong `joint-space` (không gian khớp) đến phía trên điểm bắt đầu. |
-| `PEN DOWN` | TCP hạ xuống mặt phẳng viết bằng `Cartesian path` (đường đi Cartesian). |
-| `LETTER D` | TCP đi theo toàn bộ waypoint của chữ D. |
-| `PEN UP` | TCP nhấc lên khỏi mặt phẳng sau khi viết xong. |
-
-`HOVER` dùng `pose planning` (lập kế hoạch theo tư thế) để tiếp cận. Ba đoạn
-còn lại dùng `Cartesian path` để TCP bám trực tiếp theo mặt phẳng và hình dạng chữ.
-
-## 4. Tạo hình học chữ D
-
-Chữ D được vẽ trong `frame` (hệ tọa độ) `world`, trên mặt phẳng XZ với tọa độ Y
-cố định.
-
-Các thông số hình học hiện tại là `center_x = 0.12 m`, `bottom_z = 0.55 m`,
-`height = 0.12 m`, `width = 0.08 m` và `plane_y = 0.221 m`.
-
-TCP giữ hướng cố định trong khi viết. Chữ gồm một đoạn
-thẳng từ chân phải lên đỉnh phải, sau đó là nửa elip quay về chân phải.
-
-Các điểm trên cung cong được nội suy theo:
-
-```text
-x(theta) = x_right - width * cos(theta)
-z(theta) = bottom_z + height / 2
-           + height / 2 * sin(theta)
-```
-
-Waypoint chỉ thay đổi X và Z; Y giữ nguyên bằng `plane_y`, nên đường đi
-Cartesian nằm trên cùng một mặt phẳng trong suốt quá trình viết.
-
-## 5. Lập kế hoạch và an toàn với MoveIt 2
-
-MoveIt 2 nhận `pose` (tư thế) và waypoint, giải động học ngược rồi tạo
-`JointTrajectory` cho bộ điều khiển. Gói phần mềm áp dụng các điều kiện sau:
-
-- `HOVER` dùng lập kế hoạch theo tư thế; `PEN DOWN`, `LETTER D` và `PEN UP` dùng
-  `computeCartesianPath()`;
-- bật kiểm tra va chạm khi tính đường đi Cartesian;
-- `Cartesian fraction` (tỷ lệ hoàn thành đường đi) phải đạt `1.0` trước khi thực thi;
-- `relative jump threshold` (ngưỡng nhảy tương đối) của MoveIt được truyền bằng `0.0`;
-- `max_absolute_joint_step = 0.5 rad` giới hạn bước nhảy khớp tuyệt đối;
-- `velocity_scaling = 0.05` và `acceleration_scaling = 0.05` giới hạn vận tốc và gia tốc;
-- `trajectory tolerance = 0.30 rad` (dung sai quỹ đạo) giúp bộ điều khiển ổn định trong Gazebo;
-- nghiệm IK của HOVER được đưa về gần trạng thái khớp hiện tại để tránh một khớp đi vòng thêm `2π`.
-
-| Tham số | Mặc định | Ý nghĩa |
-|---|---:|---|
-| `plane_y` | `0.221 m` | Vị trí mặt phẳng viết theo trục Y. |
-| `center_x` | `0.12 m` | Tọa độ X tại tâm chữ. |
-| `bottom_z` | `0.55 m` | Độ cao đáy chữ. |
-| `letter_height` | `0.12 m` | Chiều cao chữ D. |
-| `letter_width` | `0.08 m` | Chiều rộng chữ D. |
-| `lift_distance` | `0.05 m` | Khoảng TCP được nâng trước và sau khi viết. |
-| `eef_step` | `0.005 m` | Bước lấy mẫu Cartesian, tương đương 5 mm. |
-| `max_absolute_joint_step` | `0.5 rad` | Giới hạn bước nhảy khớp tuyệt đối. |
-| `velocity / acceleration scaling` | `0.05` | Hệ số giới hạn vận tốc và gia tốc của MoveIt. |
-
-## 6. Cấu trúc gói phần mềm
-
-```text
-ur3_draw_letter/
-├── CMakeLists.txt
-├── package.xml
-├── LICENSE
+b6/
 ├── README.md
-├── config/
-│   ├── draw_letter.rviz
-│   └── ur_controllers_assignment.yaml
-├── docs/images/
-│   └── .gitkeep
-├── include/ur3_draw_letter/
-│   └── letter_geometry.hpp
-├── launch/
-│   └── draw_letter_d.launch.py
-├── scripts/
-│   └── validate_runtime.sh
-├── src/
-│   └── draw_letter_d_node.cpp
-└── test/
-    └── test_letter_geometry.cpp
+├── b6_env.bash
+├── requirements.txt
+└── src/b6_gesture_control/
+    ├── package.xml
+    ├── setup.py
+    ├── setup.cfg
+    ├── resource/b6_gesture_control
+    ├── launch/gesture_demo.launch.py
+    ├── b6_gesture_control/
+    │   ├── gesture_recognition_node.py
+    │   └── robot_behavior_node.py
+    └── test/test_behavior_transitions.py
 ```
 
-- `launch/draw_letter_d.launch.py`: khởi động toàn bộ hệ thống.
-- `src/draw_letter_d_node.cpp`: lập kế hoạch, thực thi chuyển động bằng MoveIt và xuất marker TCP.
-- `include/.../letter_geometry.hpp`: sinh waypoint hình học của chữ D.
-- `config/ur_controllers_assignment.yaml`: cấu hình bộ điều khiển mô phỏng.
-- `config/draw_letter.rviz`: cấu hình Fixed Frame, RobotModel, MoveIt và Marker.
-- `scripts/validate_runtime.sh`: kiểm tra hệ thống khi đang chạy.
-- `test/test_letter_geometry.cpp`: kiểm tra mặt phẳng và kích thước waypoint.
+## Cài dependency và build
 
-## 7. Yêu cầu cài đặt
-
-- Ubuntu 22.04 hoặc WSL2 Ubuntu 22.04 có hỗ trợ giao diện đồ họa;
-- ROS 2 Humble Desktop;
-- MoveIt 2;
-- Gazebo Fortress;
-- `ur_description`, `ur_moveit_config` và `ur_simulation_gz`.
-
-Mô phỏng không cần robot UR thật và không cần chạy Universal Robots ROS Driver.
-Các gói UR cần được cài theo tài liệu chính thức trước khi xây dựng.
-
-## 8. Xây dựng gói
-
-Ví dụ sao chép gói vào một workspace ROS 2 mới:
+Máy cần Ubuntu 22.04, ROS 2 Humble, TurtleBot 4 Simulation/Gazebo Fortress, Python 3.10, webcam và workspace `lec4` đã build theo hướng dẫn trong `../lec4/README.md`. Launch B6 gọi package `lec4_robot_lab`, dùng robot `lite` và world mặc định `lec4_small_room`.
 
 ```bash
-mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws/src
-git clone https://github.com/kieudung12/HRI_b1.git ur3_draw_letter
-
-cd ~/ros2_ws
-source /opt/ros/humble/setup.bash
-
-rosdep install --from-paths src \
-  --ignore-src -r -y --rosdistro humble
-
-colcon build \
-  --packages-select ur3_draw_letter \
-  --symlink-install
-
-source install/setup.bash
+cd ~/HRI/b6
+source ../lec4/lab_env.bash
+python3 -m pip install --user -r requirements.txt
+colcon build --packages-select b6_gesture_control --symlink-install
+source ./b6_env.bash
 ```
 
-## 9. Chạy chương trình
+`requirements.txt` cố định phiên bản NumPy, OpenCV và MediaPipe. Lần đầu chạy cần Internet để tải `gesture_recognizer.task`; model được lưu tại `~/.cache/b6_gesture_control/gesture_recognizer.task`. Những lần sau dùng lại model đã tải. Webcam cần được hệ điều hành nhận tại `/dev/video*`; cửa sổ OpenCV cần phiên desktop có GUI.
 
-Khởi chạy mô phỏng, Gazebo, RViz và nút viết chữ:
+## Chạy
+
+Mỗi terminal chạy lệnh ROS của B6 cần nạp môi trường bằng `cd ~/HRI/b6 && source ./b6_env.bash`.
+
+**Demo gộp — Gazebo và hai node cử chỉ:**
 
 ```bash
-cd ~/ros2_ws
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-
-ros2 launch ur3_draw_letter draw_letter_d.launch.py
+cd ~/HRI/b6
+source ./b6_env.bash
+ros2 launch b6_gesture_control gesture_demo.launch.py
 ```
 
-Chạy `headless` (không mở giao diện đồ họa) để kiểm tra trên cửa sổ dòng lệnh:
+Cửa sổ webcam hiển thị 21 landmark, tên cử chỉ, confidence, số frame ổn định, FPS và trạng thái robot. Đưa toàn bộ bàn tay vào khung ảnh; `NO HAND` nghĩa là hiện chưa phát hiện tay.
+
+Nếu gặp `Package 'b6_gesture_control' not found`, nạp lại overlay trong đúng terminal:
 
 ```bash
-ros2 launch ur3_draw_letter draw_letter_d.launch.py \
-  draw_gazebo_gui:=false draw_rviz:=false
+cd ~/HRI/b6
+source ./b6_env.bash
+ros2 pkg prefix b6_gesture_control
 ```
 
-Các `launch argument` (tham số khởi chạy):
+Lệnh cuối phải in đường dẫn dạng `~/HRI/b6/install/b6_gesture_control`. Nếu vẫn chưa thấy package, thực hiện lại bước build rồi source lại. Không chạy colcon từ `~` hoặc workspace khác.
 
-| Tham số | Mặc định | Ý nghĩa |
-|---|---|---|
-| `ur_type` | `ur3e` | Loại robot Universal Robots. |
-| `draw_gazebo_gui` | `true` | Bật hoặc tắt cửa sổ Gazebo. |
-| `draw_rviz` | `true` | Bật hoặc tắt RViz. |
-| `draw_node` | `true` | Bật hoặc tắt nút viết chữ. |
-| `ign_partition` | `ur3_draw_letter` | Không gian Gazebo riêng cho gói. |
-
-Chỉ nên chạy một launch Gazebo tại một thời điểm để tránh trùng `/clock` và
-`/controller_manager`.
-
-## 10. Kiểm tra hoạt động
-
-Sau khi chương trình đã chạy, mở một cửa sổ dòng lệnh khác:
+Có thể đổi camera, giảm số frame debounce hoặc tắt cửa sổ Gazebo:
 
 ```bash
-cd ~/ros2_ws/src/ur3_draw_letter
-./scripts/validate_runtime.sh
+ros2 launch b6_gesture_control gesture_demo.launch.py camera:=1 stable_frames:=2 gui:=false
 ```
 
-Có thể kiểm tra thủ công:
+`gui:=false` chỉ tắt GUI Gazebo; webcam vẫn mở. Mặc định: `camera:=0`, `stable_frames:=3`, `gui:=true`, `world:=lec4_small_room`.
+
+**Chạy tách ba terminal để xem log từng node:**
+
+Mỗi terminal đều source `b6_env.bash` trước. Chọn cách chạy tách hoặc demo gộp, tránh mở trùng các node.
+
+Terminal 1 — Gazebo:
 
 ```bash
-source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
-
-ros2 control list_controllers
-ros2 topic echo /joint_states --once
-ros2 topic info /drawing_path
-ros2 topic info /clock
+ros2 launch lec4_robot_lab sim.launch.py model:=lite gui:=true rviz:=false
 ```
 
-Trạng thái bộ điều khiển cần đạt:
+Terminal 2 — điều khiển hành vi:
 
-```text
-joint_trajectory_controller   active
-joint_state_broadcaster       active
+```bash
+ros2 run b6_gesture_control robot_behavior_node
 ```
 
-Các thông báo chính mong đợi:
+Terminal 3 — webcam và nhận diện:
 
-```text
-READY: controller recovery hold da thanh cong.
-HOVER plan: SUCCESS
-PEN DOWN Cartesian fraction: 100.0%
-LETTER D Cartesian fraction: 100.0%
-LETTER D: execution thanh cong.
-PEN UP: execution thanh cong.
-Hoan tat chu D mot lan.
+```bash
+ros2 run b6_gesture_control gesture_recognition_node --ros-args -p camera_index:=0 -p stable_frames:=3 -p min_confidence:=0.60 -p display:=true
 ```
 
-## 11. Kết quả
+Không dùng teleop, các nút điều khiển vận tốc hoặc node khác cùng publish `/cmd_vel` trong lúc demo. Dùng vùng trống quanh robot để tiến–lùi và chạy tròn. `Ctrl+C` kết thúc launch; `Q` hoặc `Esc` trong cửa sổ webcam đóng node nhận diện, sau đó watchdog tạm dừng robot khi mất heartbeat.
 
-- Video kết quả: <https://drive.google.com/file/d/1jdoLBA7VriOajd2HTTnhO_-BGdYgKXFS/view?usp=sharing>
-- Kho mã nguồn trên GitHub: <https://github.com/kieudung12/HRI_b1>
+## Cử chỉ và hành vi robot
 
+| Cử chỉ | Nhãn `/detected_gesture` | Hành vi |
+| --- | --- | --- |
+| Giơ một ngón tay | `Pointing_Up` | Chọn tiến–lùi 4 chu kỳ |
+| Giơ hai ngón tay | `Victory` | Chọn di chuyển theo quỹ đạo tròn |
+| Vẫy tay trái–phải | `Wave` | Chọn xoay trái–phải để chào |
+| Giơ ngón cái | `Thumb_Up` | Xác nhận hành vi đã chọn hoặc tiếp tục hành vi tạm dừng |
+| Xòe lòng bàn tay | `Open_Palm` | Tạm dừng ngay, giữ tiến độ và phần chuyển động còn lại |
+| Nắm tay | `Closed_Fist` | Hủy hành vi/lựa chọn, xóa tiến độ và về `WAITING` |
 
-## 12. Tài liệu tham khảo
+Robot chỉ bắt đầu chuyển động sau khi xác nhận bằng ngón cái. Trình tự demo:
 
-- [ROS 2 Humble](https://docs.ros.org/en/humble/)
-- [Mô phỏng Gazebo cho Universal Robots](https://github.com/UniversalRobots/Universal_Robots_ROS2_GZ_Simulation)
-- [Universal Robots ROS Driver](https://github.com/UniversalRobots/Universal_Robots_ROS_Driver)
-- [Ví dụ MoveIt 2 cho Universal Robots](https://github.com/dominikbelter/ros2_ur_moveit_examples)
+1. Chọn bằng Pointing Up, Victory hoặc Wave; chờ `SELECTED | ...` xuất hiện trên webcam.
+2. Giơ ngón cái đến khi trạng thái đổi sang `RUNNING | ...`.
+3. Xòe bàn tay để tạm dừng: robot phát vận tốc 0 và báo `PAUSED | ...`.
+4. Giơ ngón cái để chạy tiếp đúng đoạn còn lại. Ví dụ đoạn tiến dài 1.5 giây đã chạy 0.5 giây thì sau khi tiếp tục chỉ chạy nốt 1.0 giây.
+5. Nắm tay để hủy và về `WAITING | SELECT AN ACTION`. Khi đang chạy/tạm dừng, phải hủy trước nếu muốn chọn hành vi khác.
+
+Open Palm khi đang chờ xác nhận giữ nguyên lựa chọn. Khi hành vi hữu hạn hoàn tất, robot dừng và báo `COMPLETED | ...`; giơ ngón cái đơn lẻ không chạy lại hành vi đã hoàn tất.
+
+Tiến–lùi dùng 0.18 m/s trong 1.5 giây mỗi chiều, khoảng 27 cm mỗi lượt, nghỉ 0.3 giây khi đổi chiều và lặp 4 chu kỳ. Đường tròn dùng 0.12 m/s và 0.32 rad/s, bán kính danh định khoảng 0.375 m; lặp liên tục đến khi tạm dừng hoặc hủy. Greeting xoay trái, phải, rồi trở về hướng ban đầu; tổng chương trình khoảng 3.1 giây, chưa tính thời gian tạm dừng. Khoảng cách/góc được tính theo vận tốc và thời gian lệnh, không có hiệu chỉnh bằng odometry.
+
+## Nhận diện Wave và chống nhiễu
+
+Model MediaPipe mặc định có các nhãn tư thế tay tĩnh nhưng không có Wave. B6 nhận Wave từ chuỗi landmark bàn tay mở chuyển động ngang và đổi hướng. Cử chỉ tĩnh cần 3 frame liên tiếp, confidence ít nhất 0.60. Wave cần ít nhất 4 mẫu trong cửa sổ 1 giây, một lần đổi hướng và biên độ khoảng 18% bề rộng lòng bàn tay trong ảnh, tối thiểu 0.018 chiều rộng ảnh; sau đó xác nhận qua 2 frame.
+
+Khi chọn Wave, node phân biệt chuyển động ngang với bàn tay mở đứng yên và giữ nhãn trong lúc chuyển sang ngón cái. Node hành vi cũng giữ lựa chọn nếu nhận Open Palm ở cuối động tác vẫy. Khi đang chạy hoặc tạm dừng, Open Palm được ưu tiên để lệnh tạm dừng không bị nhận thành Wave.
+
+Nhãn ổn định được publish liên tục như heartbeat; node điều khiển chỉ xử lý khi nhãn thay đổi, nên giữ nguyên một cử chỉ không kích hoạt hành vi nhiều lần. Camera vẫn hoạt động nhưng không thấy tay hoặc confidence thấp sẽ gửi `NONE`; hành vi đã xác nhận tiếp tục. Mất heartbeat quá 0.8 giây sẽ tạm dừng và giữ tiến độ; cần Thumbs Up để tiếp tục khi tín hiệu trở lại. Thời gian tạm dừng không tính vào tiến độ hành vi.
+
+## Kiểm tra topic trước và trong khi chạy
+
+Sau khi simulator và hai node khởi động, mở terminal đã source môi trường B6:
+
+```bash
+ros2 topic info /detected_gesture
+ros2 topic info /cmd_vel
+ros2 topic echo /robot_behavior_state
+```
+
+`/cmd_vel` cần có publisher từ node hành vi và subscriber của mô phỏng. Nếu vẫn `WAITING | SELECT AN ACTION` sau khi giơ ngón cái thì chưa có hành vi được chọn; chờ `SELECTED` trước khi xác nhận. Nếu đã `RUNNING` mà robot không chuyển động, quan sát `/cmd_vel` và kiểm tra các publisher khác có đang phát vận tốc 0 hay không.
+
+| Topic | Kiểu message | Nội dung |
+| --- | --- | --- |
+| `/detected_gesture` | `std_msgs/msg/String` | Nhãn cử chỉ ổn định hoặc `NONE` |
+| `/robot_behavior_state` | `std_msgs/msg/String` | `WAITING`, `SELECTED`, `RUNNING`, `PAUSED`, `COMPLETED` |
+| `/cmd_vel` | `geometry_msgs/msg/Twist` | Vận tốc tiến và xoay |
+
+Có thể quan sát từng luồng ở các terminal riêng:
+
+```bash
+ros2 topic echo /detected_gesture
+```
+
+```bash
+ros2 topic echo /cmd_vel
+```
+
+## Kiểm tra logic không cần ROS/Gazebo
+
+```bash
+cd ~/HRI/b6
+python3 -m unittest discover -s src/b6_gesture_control/test -v
+```
+
+Bộ kiểm tra dùng đồng hồ và publisher giả, gồm 10 test cho tạm dừng/tiếp tục từng hành vi, nhiều lần dừng, giữ đoạn chuyển động còn lại, hủy bằng nắm tay, mất heartbeat, hoàn tất và ưu tiên Open Palm. Các test đã đạt và package đã build thành công trong workspace phát triển; kiểm tra này chưa thay thế kiểm tra webcam và chuyển động thực tế trong Gazebo.
+
+## Tài liệu tham khảo
+
+- [MediaPipe Gesture Recognizer](https://ai.google.dev/edge/mediapipe/solutions/vision/gesture_recognizer) — nhận diện tư thế tay và landmark.
+- [OpenCV](https://docs.opencv.org/4.x/) — đọc webcam và hiển thị ảnh.
+- [TurtleBot 4 User Manual](https://turtlebot.github.io/turtlebot4-user-manual/) — robot và mô phỏng.
+- [IntellisenseLab QBot](https://github.com/IntellisenseLab/final-project-theflysky) — tham khảo tổ chức node nhận diện cử chỉ và điều khiển ROS 2.
+- [VirtuHand](https://github.com/Srecharan/VirtuHand) — tham khảo xử lý chuỗi landmark cho cử chỉ động.

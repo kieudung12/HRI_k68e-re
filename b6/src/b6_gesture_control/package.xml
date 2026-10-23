@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>b6_gesture_control</name>
+  <version>0.1.0</version>
+  <description>MediaPipe hand gesture recognition and TurtleBot 4 behavior control.</description>
+  <maintainer email="student@example.com">HRI Student</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>lec4_robot_lab</exec_depend>
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
