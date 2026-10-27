@@ -1,6 +1,0 @@
-build/
-install/
-log/
-__pycache__/
-*.py[cod]
-src/b6_gesture_control/models/*.task

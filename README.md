@@ -4,7 +4,7 @@
 
 Workspace B6 dùng lại world và launch mô phỏng trong `../lec4`. Webcam laptop cung cấp ảnh cho OpenCV và MediaPipe Gesture Recognizer; node `gesture_recognition_node` nhận diện cử chỉ và publish `/detected_gesture`. Node `robot_behavior_node` chờ xác nhận bằng ngón cái rồi điều khiển TurtleBot 4 qua `/cmd_vel` trong Gazebo.
 
-Mã B6 trên nhánh `assignments_6` nằm trong thư mục `b6/`. Khi lấy mã về máy, đặt workspace này tại `~/HRI/b6`, cạnh workspace mô phỏng `~/HRI/lec4` đã build từ bài trước.
+Nhánh `assignments_6` chứa workspace Bài 6 ngay tại thư mục gốc của repository. Khi lấy mã về máy, đặt workspace tại `~/HRI/b6`, cạnh workspace mô phỏng `~/HRI/lec4` đã build từ bài trước.
 
 - Đọc webcam và nhận diện tối thiểu 5 cử chỉ tay bằng OpenCV và MediaPipe.
 - Truyền kết quả nhận diện giữa các node ROS 2 để chọn và xác nhận hành vi robot.
@@ -45,15 +45,15 @@ python3 -m pip install --user -r requirements.txt
 
 Các phiên bản sử dụng: NumPy `1.26.4`, OpenCV `4.10.0.84`, MediaPipe `0.10.21`. Lần đầu chạy cần Internet để tải `gesture_recognizer.task`; model được lưu tại `~/.cache/b6_gesture_control/gesture_recognizer.task`. Những lần sau dùng lại model đã tải. Webcam cần được hệ điều hành nhận tại `/dev/video*`; cửa sổ OpenCV cần phiên desktop có GUI.
 
-**Tài liệu tham khảo:**
-
-- [MediaPipe Gesture Recognizer](https://ai.google.dev/edge/mediapipe/solutions/vision/gesture_recognizer) — nhận diện tư thế tay và landmark.
-- [OpenCV](https://docs.opencv.org/4.x/) — đọc webcam và hiển thị ảnh.
-- [TurtleBot 4 User Manual](https://turtlebot.github.io/turtlebot4-user-manual/) — robot và mô phỏng.
-- [IntellisenseLab QBot](https://github.com/IntellisenseLab/final-project-theflysky) — tham khảo tổ chức node nhận diện cử chỉ và điều khiển ROS 2.
-- [VirtuHand](https://github.com/Srecharan/VirtuHand) — tham khảo xử lý chuỗi landmark cho cử chỉ động.
 
 ### 3.2. Thiết lập môi trường và Build Package
+
+Nếu chưa có thư mục `~/HRI/b6`, lấy đúng nhánh Bài 6 từ GitHub:
+
+```bash
+mkdir -p ~/HRI
+git clone --single-branch --branch assignments_6 https://github.com/kieudung12/HRI_k68e-re.git ~/HRI/b6
+```
 
 Build trong workspace B6, sau đó source overlay:
 
