@@ -67,6 +67,23 @@ behavior = load_node('robot_behavior_node.py')
 recognition = load_node('gesture_recognition_node.py')
 
 
+def make_recognizer(status='WAITING | SELECT AN ACTION'):
+    node = recognition.GestureRecognitionNode.__new__(recognition.GestureRecognitionNode)
+    node.min_confidence = 0.6
+    node.robot_status = status
+    node.positions = deque(maxlen=120)
+    node.stable_frames = 3
+    node.history = deque(maxlen=3)
+    return node
+
+
+def palm(x):
+    landmarks = [SimpleNamespace(x=x) for _ in range(21)]
+    landmarks[5].x = x - 0.06
+    landmarks[17].x = x + 0.06
+    return landmarks
+
+
 class BehaviorTransitions(unittest.TestCase):
     def setUp(self):
         self.now = 100.0
@@ -195,8 +212,71 @@ class BehaviorTransitions(unittest.TestCase):
         self.tick(0.1)
         self.assertTrue(self.node.paused)
         self.gesture('Thumb_Up')
+        self.assertTrue(self.node.paused, 'Held thumb after reconnect must not resume')
+        self.gesture('Open_Palm')
+        self.gesture('Thumb_Up')
         self.assertFalse(self.node.paused)
         self.assertAlmostEqual(self.now - self.node.segment_started, elapsed)
+
+    def test_late_heartbeat_cannot_hide_an_outage_before_timer_runs(self):
+        self.start('Victory')
+        self.now += 1.0
+        self.gesture('Thumb_Up')
+        self.assertTrue(self.node.paused)
+        self.assertEqual(self.velocity(), (0.0, 0.0))
+        self.gesture('NONE')
+        self.gesture('Thumb_Up')
+        self.assertTrue(self.node.paused)
+        self.gesture('Open_Palm')
+        self.gesture('Thumb_Up')
+        self.assertFalse(self.node.paused)
+
+    def test_watchdog_preserves_pending_selection_but_requires_new_pose(self):
+        self.gesture('Pointing_Up')
+        self.tick(0.9, heartbeat=False)
+        self.gesture('Thumb_Up')
+        self.assertIsNone(self.node.active_action)
+        self.assertEqual(self.node.pending_action, 'forward_back')
+        self.gesture('Open_Palm')
+        self.gesture('Thumb_Up')
+        self.assertEqual(self.node.active_action, 'forward_back')
+
+    def test_recognition_to_behavior_wave_confirm_pause_resume_cancel(self):
+        camera = make_recognizer()
+
+        def frame(raw, landmarks=None):
+            self.now += 0.05
+            camera._on_robot_status(String(self.node.status))
+            candidate, _ = camera._resolve_candidate(raw, 0.9, landmarks, self.now)
+            stable, _, _ = camera._debounce(candidate)
+            self.gesture(stable)
+            self.node.on_timer()
+
+        for x in (0.40, 0.43, 0.46, 0.43, 0.40):
+            frame('Open_Palm', palm(x))
+        self.assertEqual(self.node.pending_action, 'greeting')
+        for _ in range(5):
+            frame('Open_Palm', palm(0.40))
+        self.assertEqual(self.node.pending_action, 'greeting')
+        for _ in range(3):
+            frame('Thumb_Up')
+        self.assertEqual(self.node.active_action, 'greeting')
+        self.assertNotEqual(self.velocity(), (0.0, 0.0))
+        for _ in range(3):
+            frame('Open_Palm', palm(0.40))
+        self.assertTrue(self.node.paused)
+        elapsed = self.node.paused_elapsed
+        for _ in range(10):
+            frame('Open_Palm', palm(0.40))
+        self.assertEqual(self.node.paused_elapsed, elapsed)
+        for _ in range(3):
+            frame('Thumb_Up')
+        self.assertFalse(self.node.paused)
+        self.assertAlmostEqual(self.now - self.node.segment_started, elapsed)
+        for _ in range(3):
+            frame('Closed_Fist')
+        self.assertIsNone(self.node.active_action)
+        self.assertEqual(self.velocity(), (0.0, 0.0))
 
     def test_completed_greeting_does_not_replay_on_thumb_up(self):
         self.start('Wave')
@@ -235,31 +315,78 @@ class BehaviorTransitions(unittest.TestCase):
 
 
 class RecognitionPriority(unittest.TestCase):
+    def test_camera_is_released_when_opening_or_model_loading_fails(self):
+        for opened in (False, True):
+            with self.subTest(opened=opened):
+                node = make_recognizer()
+                node.camera_index = 0
+                node.display = False
+                node.model_path = Mock()
+                node.model_path.is_file.return_value = True
+                node._publish = Mock()
+                capture = Mock()
+                capture.isOpened.return_value = opened
+                tasks = Mock()
+                tasks.vision.GestureRecognizer.create_from_options.side_effect = RuntimeError('bad model')
+                with patch.dict(recognition.cv2.__dict__, {
+                    'VideoCapture': Mock(return_value=capture),
+                    'CAP_PROP_FRAME_WIDTH': 3, 'CAP_PROP_FRAME_HEIGHT': 4,
+                }), patch.dict(recognition.mp.__dict__, {'tasks': tasks}), \
+                        patch.dict(recognition.rclpy.__dict__, {'ok': lambda: True}):
+                    with self.assertRaises(RuntimeError):
+                        node.run_camera()
+                capture.release.assert_called_once()
+
     def test_end_of_wave_remains_selected_until_confirmation(self):
-        node = recognition.GestureRecognitionNode.__new__(recognition.GestureRecognitionNode)
-        node.min_confidence = 0.6
-        node.robot_status = 'SELECTED | GREETING'
-        node.positions = deque()
-        node.wave_latched = True
-        node.wave_hold_until = 1.0
-        node._wave_status = Mock(return_value=(False, False))
+        node = make_recognizer('SELECTED | GREETING')
+        node._wave_status = Mock(side_effect=AssertionError('Selection is already retained'))
         self.assertEqual(node._resolve_candidate('Open_Palm', 0.9, [], 100), ('Wave', False))
         self.assertEqual(node._resolve_candidate('Thumb_Up', 0.9, [], 100), ('Thumb_Up', False))
 
-    def test_wave_latch_cannot_hide_pause_during_running_or_paused_action(self):
+    def test_wave_cannot_hide_pause_during_running_or_paused_action(self):
         for status in ('RUNNING | GREETING', 'RUNNING | CIRCLE',
                        'PAUSED | FORWARD BACK | OPEN PALM'):
             with self.subTest(status=status):
-                node = recognition.GestureRecognitionNode.__new__(recognition.GestureRecognitionNode)
-                node.min_confidence = 0.6
-                node.robot_status = status
-                node.positions = deque()
-                node.wave_latched = True
-                node.wave_hold_until = 9999
+                node = make_recognizer(status)
                 node._wave_status = Mock(side_effect=AssertionError('Wave must not override pause'))
                 self.assertEqual(node._resolve_candidate('Open_Palm', 0.9, [], 100),
                                  ('Open_Palm', False))
-                self.assertFalse(node.wave_latched)
+
+    def test_wave_detected_at_both_low_and_high_frame_rates(self):
+        for fps in (15, 60):
+            with self.subTest(fps=fps):
+                node = make_recognizer()
+                detected = False
+                for i in range(int(fps * 0.8)):
+                    t = i / fps
+                    x = 0.4 + 0.15 * (t if t <= 0.4 else 0.8 - t)
+                    candidate, _ = node._resolve_candidate('Open_Palm', 0.9, palm(x), t)
+                    detected |= candidate == 'Wave'
+                self.assertTrue(detected)
+
+    def test_static_hand_jitter_and_one_way_motion_are_not_waves(self):
+        traces = [([0.4, 0.402, 0.399, 0.401] * 5),
+                  [0.4 + i * 0.004 for i in range(20)],
+                  [0.4, 0.43, 0.46, 0.456, 0.459, 0.457]]
+        for trace in traces:
+            with self.subTest(trace=trace):
+                node = make_recognizer()
+                for i, x in enumerate(trace):
+                    candidate, _ = node._resolve_candidate('Open_Palm', 0.9, palm(x), i / 30)
+                    self.assertNotEqual(candidate, 'Wave')
+
+    def test_debounce_rejects_single_frame_and_preserves_fast_wave(self):
+        node = make_recognizer()
+        for pose in ('Thumb_Up', 'Closed_Fist', 'Open_Palm'):
+            node.history.clear()
+            self.assertEqual(node._debounce(pose)[0], 'NONE')
+            self.assertEqual(node._debounce(None)[0], 'NONE')
+            self.assertEqual(node._debounce(pose)[0], 'NONE')
+            self.assertEqual(node._debounce(pose)[0], 'NONE')
+            self.assertEqual(node._debounce(pose)[0], pose)
+        node.history.clear()
+        self.assertEqual(node._debounce('Wave')[0], 'NONE')
+        self.assertEqual(node._debounce('Wave'), ('Wave', 2, 2))
 
 
 if __name__ == '__main__':
