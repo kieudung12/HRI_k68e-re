@@ -1,0 +1,12 @@
+{
+  "input": "PulseAudio virtual microphone, Vietnamese synthetic speech",
+  "model": "Whisper large-v3",
+  "device": "cuda",
+  "compute_type": "float16",
+  "recognized": "Đi từ phòng A qua khu vực C rồi đến phòng B.",
+  "topic": "/voice_command_test",
+  "rms": 0.0912,
+  "peak": 0.552,
+  "seconds": 1.2,
+  "passed": true
+}

@@ -1,0 +1,69 @@
+[
+  {
+    "case": "a",
+    "text": "Đi đến khu vực A.",
+    "sent": [
+      "A"
+    ],
+    "statuses": [
+      4
+    ],
+    "passed": true,
+    "error": null,
+    "seconds": 30.8
+  },
+  {
+    "case": "a_b",
+    "text": "Di chuyển từ khu vực A đến khu vực B.",
+    "sent": [
+      "A",
+      "B"
+    ],
+    "statuses": [
+      4,
+      4
+    ],
+    "passed": true,
+    "error": null,
+    "seconds": 41.4
+  },
+  {
+    "case": "lab",
+    "text": "Đi đến phòng thí nghiệm.",
+    "sent": [
+      "C"
+    ],
+    "statuses": [
+      4
+    ],
+    "passed": true,
+    "error": null,
+    "seconds": 43.6
+  },
+  {
+    "case": "unknown",
+    "text": "Đi đến khu vực D.",
+    "sent": [],
+    "statuses": [],
+    "passed": true,
+    "error": null,
+    "seconds": 0.0
+  },
+  {
+    "case": "a_c_b",
+    "text": "Đi từ phòng A qua khu vực C rồi đến phòng B.",
+    "sent": [
+      "A",
+      "C",
+      "B"
+    ],
+    "statuses": [
+      4,
+      4,
+      4
+    ],
+    "passed": true,
+    "error": null,
+    "seconds": 99.7
+  }
+]

@@ -1,0 +1,38 @@
+[
+  [
+    "a",
+    "Đi đến khu vực A.",
+    [
+      "A"
+    ]
+  ],
+  [
+    "a_b",
+    "Di chuyển từ khu vực A đến khu vực B.",
+    [
+      "A",
+      "B"
+    ]
+  ],
+  [
+    "lab",
+    "Đi đến phòng thí nghiệm.",
+    [
+      "C"
+    ]
+  ],
+  [
+    "unknown",
+    "Đi đến khu vực D.",
+    null
+  ],
+  [
+    "a_c_b",
+    "Đi từ phòng A qua khu vực C rồi đến phòng B.",
+    [
+      "A",
+      "C",
+      "B"
+    ]
+  ]
+]

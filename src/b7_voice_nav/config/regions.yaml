@@ -1,0 +1,14 @@
+# B7 campus: poses in the ground-truth map/world frame, metres and radians.
+regions:
+  - id: A
+    name: Phòng A
+    aliases: [khu vực a, vùng a, phòng a, a, phòng học]
+    goal: {x: -3.2, y: 2.4, yaw: 1.57}
+  - id: B
+    name: Phòng B
+    aliases: [khu vực b, vùng b, phòng b, b, khu vực bê, phòng bê, bê]
+    goal: {x: 3.2, y: 2.4, yaw: 1.57}
+  - id: C
+    name: Phòng thí nghiệm
+    aliases: [khu vực c, vùng c, phòng c, c, phòng thí nghiệm, khu vực xê, phòng xê, xê]
+    goal: {x: 0.0, y: -2.5, yaw: -1.57}

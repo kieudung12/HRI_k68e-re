@@ -1,263 +1,293 @@
-# Vẽ chữ D bằng Cartesian (tọa độ Descartes) với ROS 2 và MoveIt 2
+# Bài thực hành 7: Phân vùng bản đồ và điều hướng robot bằng giọng nói
 
-**Tương tác Người–Robot — Bài thực hành 01**
-Điều khiển robot UR3e viết chữ **D** trong Gazebo bằng ROS 2 Humble và MoveIt 2.
+**Môn học:** Tương tác người – robot (HRI)  
+**Môi trường:** Ubuntu 22.04 · ROS 2 Humble · TurtleBot 4 Lite · Gazebo Fortress  
+**Ngôn ngữ:** Python · **Nhận dạng:** Whisper large-v3 qua faster-whisper
 
-Chữ D là chữ cái đầu trong tên **Dũng**. Gói phần mềm này minh họa cách xây dựng
-các `waypoint` (điểm mốc), lập kế hoạch chuyển động bằng MoveIt 2 và thực thi
-`trajectory` (quỹ đạo) thông qua `joint_trajectory_controller` (bộ điều khiển
-quỹ đạo khớp).
+## 1. Mục tiêu bài tập
 
-## 1. Mục tiêu
+Xây dựng hệ thống cho phép người dùng ra lệnh bằng tiếng Việt để robot di chuyển đến các khu vực đã gắn nhãn trên bản đồ. Luồng xử lý: **microphone → Whisper → văn bản trên `/voice_command` → phân tích hành trình → `NavigateToPose` → Nav2**.
 
-Mục tiêu của bài là làm quen với chuỗi xử lý điều khiển robot công nghiệp:
+| Yêu cầu | Cách thực hiện |
+| --- | --- |
+| Phân vùng bản đồ | Đọc Occupancy Grid, xác định ô trống và dùng BFS đa nguồn để lan nhãn từ ba điểm mẫu, không xuyên tường |
+| Gắn nhãn ngữ nghĩa | Lưu ID, tên, alias và tọa độ đích của A/B/C trong YAML |
+| Nhận dạng giọng nói | Ghi microphone, chuyển tiếng Việt thành văn bản với Whisper large-v3 |
+| Điều hướng | Gửi từng đích cho Nav2; câu “từ A đến B” luôn thực hiện A trước B |
+| Xử lý lệnh không hợp lệ | Kiểm tra toàn bộ hành trình trước khi gửi goal; từ chối nếu có vùng không tồn tại hoặc thiếu tên vùng |
 
-- mô phỏng UR3e trong Gazebo Fortress;
-- nhận trạng thái khớp và TF từ môi trường mô phỏng;
-- dùng MoveIt 2 để giải `inverse kinematics` (động học ngược), lập kế hoạch
-  chuyển động và `collision checking` (kiểm tra va chạm);
-- chuyển các waypoint Cartesian của chữ D thành quỹ đạo khớp;
-- quan sát robot và đường đi của TCP trong RViz.
+Bản đồ và world được tạo mới từ cùng mô tả hình học: hai phòng A/B phía bắc, phòng thí nghiệm C phía nam, nối bằng hành lang. Đây là bản đồ hình học của mô phỏng, không phải bản đồ thu bằng SLAM. Tên phòng do người thiết kế gắn; thuật toán chưa tự suy ra chức năng phòng hoặc phát hiện cửa.
 
-Robot thực hiện một lần theo trình tự:
+![Kết quả phân vùng A/B/C](regions.png)
 
-```text
-READY → HOVER → PEN DOWN → LETTER D → PEN UP
-```
+## 2. Cấu trúc thư mục
 
-## 2. Kiến trúc hệ thống
-
-```mermaid
-flowchart TD
-    A[Tệp launch] --> B[Mô phỏng UR3e trong Gazebo]
-    B --> C[Bộ điều khiển ros2_control]
-    C --> D[Trạng thái khớp và TF]
-    D --> E[MoveIt 2 / move_group]
-    F[draw_letter_d_node] --> G[Waypoint Cartesian]
-    G --> E
-    E --> H[JointTrajectory]
-    H --> I[joint_trajectory_controller]
-    I --> B
-    D --> F
-    F --> J[Marker /drawing_path]
-    J --> K[RViz]
-```
-
-`draw_letter_d.launch.py` khởi động môi trường mô phỏng, bộ điều khiển, MoveIt,
-RViz và nút vẽ theo đúng thứ tự phụ thuộc. Phần `controller recovery` (khôi
-phục bộ điều khiển) chờ `joint_state_broadcaster` và
-`joint_trajectory_controller` ở trạng thái `active` trước khi cho nút bắt đầu
-lập kế hoạch.
-
-## 3. Trình tự chuyển động
-
-| Trạng thái | Ý nghĩa |
-|---|---|
-| `READY` | Phần khôi phục giữ robot ở tư thế khởi động an toàn. |
-| `HOVER` | MoveIt giải IK và lập kế hoạch trong `joint-space` (không gian khớp) đến phía trên điểm bắt đầu. |
-| `PEN DOWN` | TCP hạ xuống mặt phẳng viết bằng `Cartesian path` (đường đi Cartesian). |
-| `LETTER D` | TCP đi theo toàn bộ waypoint của chữ D. |
-| `PEN UP` | TCP nhấc lên khỏi mặt phẳng sau khi viết xong. |
-
-`HOVER` dùng `pose planning` (lập kế hoạch theo tư thế) để tiếp cận. Ba đoạn
-còn lại dùng `Cartesian path` để TCP bám trực tiếp theo mặt phẳng và hình dạng chữ.
-
-## 4. Tạo hình học chữ D
-
-Chữ D được vẽ trong `frame` (hệ tọa độ) `world`, trên mặt phẳng XZ với tọa độ Y
-cố định.
-
-Các thông số hình học hiện tại là `center_x = 0.12 m`, `bottom_z = 0.55 m`,
-`height = 0.12 m`, `width = 0.08 m` và `plane_y = 0.221 m`.
-
-TCP giữ hướng cố định trong khi viết. Chữ gồm một đoạn
-thẳng từ chân phải lên đỉnh phải, sau đó là nửa elip quay về chân phải.
-
-Các điểm trên cung cong được nội suy theo:
+Nhánh `assignments_7` chứa trực tiếp nội dung workspace B7 ở thư mục gốc repository. Khi clone theo mục 3, thư mục làm việc được đặt tên là `b7`:
 
 ```text
-x(theta) = x_right - width * cos(theta)
-z(theta) = bottom_z + height / 2
-           + height / 2 * sin(theta)
+b7/
+├── README.md                      # Mục tiêu, cài đặt, chạy và xử lý lỗi
+├── LICENSE                        # Giấy phép Apache-2.0
+├── THIRD_PARTY.md                  # Nguồn và giấy phép bên thứ ba
+├── .gitignore                     # Loại build, cache, môi trường và model khỏi Git
+├── b7_env.bash                    # Nạp môi trường ROS riêng của B7
+├── setup.sh                       # Cài Python, chuẩn bị runtime, build, tải model
+├── setup_runtime.sh               # Build TF2 phiên bản tương thích trong B7
+├── requirements.txt               # Thư viện Python được khóa phiên bản
+├── regions.png                    # Ảnh ba vùng và điểm đích
+├── src/b7_voice_nav/
+│   ├── package.xml                # Khai báo dependency ROS 2
+│   ├── setup.py                   # Đăng ký node, tài nguyên và prompt
+│   ├── setup.cfg                  # Vị trí cài executable ROS 2
+│   ├── resource/b7_voice_nav       # Đăng ký package với ament
+│   ├── b7_voice_nav/
+│   │   ├── common.py              # Chuẩn hóa câu, tìm vùng, đổi tọa độ
+│   │   ├── segment.py             # Phân vùng ô trống bằng BFS đa nguồn
+│   │   ├── navigator.py           # Gửi và theo dõi từng goal Nav2
+│   │   ├── speech.py              # Ghi microphone và publish văn bản
+│   │   ├── whisper_engine.py      # Nạp model và chuyển âm thanh thành chữ
+│   │   ├── prompts/whisper_vi.txt # Prompt ngữ cảnh thực tế dùng cho Whisper
+│   │   ├── map_markers.py         # Nhãn, điểm đích, lớp tô vùng tùy chọn
+│   │   ├── simulator.py           # Quản lý Gazebo server/GUI
+│   │   └── scan_throttle.py       # Giảm tần số scan dùng cho AMCL
+│   ├── launch/
+│   │   ├── sim.launch.py          # World B7 và robot TurtleBot 4
+│   │   └── navigation.launch.py   # Map server, AMCL, Nav2 và RViz
+│   ├── config/
+│   │   ├── regions.yaml           # Tên, alias và pose đích A/B/C
+│   │   ├── nav2.yaml              # AMCL, planner, controller và costmap
+│   │   ├── map.rviz               # RViz có LiDAR và mô hình robot
+│   │   ├── gazebo_gui.config      # Bố cục Gazebo GUI
+│   │   └── fastdds_udp.xml        # DDS qua UDP loopback
+│   ├── maps/
+│   │   ├── map.yaml               # Resolution, origin và ngưỡng occupancy
+│   │   └── map.pgm                # Ảnh bản đồ 2D
+│   └── worlds/b7_campus.sdf       # World tương ứng bản đồ
+├── tools/
+│   ├── generate_world_map.py      # Sinh đồng thời world và occupancy map
+│   ├── download_model.py          # Tải model theo revision đã khóa
+│   ├── transcribe_audio.py        # Thử nhận dạng một file âm thanh
+│   └── package_submission.py      # Đóng gói B7 thành ZIP
+├── tests/
+│   ├── test_common.py             # Lệnh, trường hợp lỗi, đổi tọa độ
+│   └── test_segmentation.py       # Tường, vùng liên thông, độ an toàn goal
+└── evidence/
+    ├── kiem_thu.md                # Điều kiện và kết quả kiểm thử
+    ├── rviz.png                   # Ảnh RViz thực tế có LiDAR
+    ├── *_results.json             # Kết quả Whisper, Nav2 và phân vùng
+    ├── microphone_pipeline.json   # Kiểm tra microphone ảo → ROS
+    └── audio/                     # Âm thanh tổng hợp dùng kiểm thử
 ```
 
-Waypoint chỉ thay đổi X và Z; Y giữ nguyên bằng `plane_y`, nên đường đi
-Cartesian nằm trên cùng một mặt phẳng trong suốt quá trình viết.
+Sau cài đặt sẽ có thêm `.venv/`, `.runtime/`, `build/`, `install/`, `log/` và `models/whisper-large-v3/`. Các thư mục này phụ thuộc máy hoặc có dung lượng lớn nên không đưa lên Git. Model được tải lại bằng `setup.sh`; toàn bộ source, launch, config, prompt và dữ liệu bản đồ có trong repository.
 
-## 5. Lập kế hoạch và an toàn với MoveIt 2
+## 3. Cài đặt và chuẩn bị môi trường
 
-MoveIt 2 nhận `pose` (tư thế) và waypoint, giải động học ngược rồi tạo
-`JointTrajectory` cho bộ điều khiển. Gói phần mềm áp dụng các điều kiện sau:
+### 3.1. Điều kiện
 
-- `HOVER` dùng lập kế hoạch theo tư thế; `PEN DOWN`, `LETTER D` và `PEN UP` dùng
-  `computeCartesianPath()`;
-- bật kiểm tra va chạm khi tính đường đi Cartesian;
-- `Cartesian fraction` (tỷ lệ hoàn thành đường đi) phải đạt `1.0` trước khi thực thi;
-- `relative jump threshold` (ngưỡng nhảy tương đối) của MoveIt được truyền bằng `0.0`;
-- `max_absolute_joint_step = 0.5 rad` giới hạn bước nhảy khớp tuyệt đối;
-- `velocity_scaling = 0.05` và `acceleration_scaling = 0.05` giới hạn vận tốc và gia tốc;
-- `trajectory tolerance = 0.30 rad` (dung sai quỹ đạo) giúp bộ điều khiển ổn định trong Gazebo;
-- nghiệm IK của HOVER được đưa về gần trạng thái khớp hiện tại để tránh một khớp đi vòng thêm `2π`.
+- Ubuntu 22.04, ROS 2 Humble đã cài tại `/opt/ros/humble`.
+- Microphone được Ubuntu nhận diện; có giao diện đồ họa để mở Gazebo/RViz.
+- Khuyến nghị GPU NVIDIA có 8 GB VRAM; máy kiểm thử dùng RTX 4060 8 GB.
+- Có Internet ở lần cài đầu để tải dependency và model khoảng 3 GB. Sau khi tải xong, nhận dạng chạy tại máy.
 
-| Tham số | Mặc định | Ý nghĩa |
-|---|---:|---|
-| `plane_y` | `0.221 m` | Vị trí mặt phẳng viết theo trục Y. |
-| `center_x` | `0.12 m` | Tọa độ X tại tâm chữ. |
-| `bottom_z` | `0.55 m` | Độ cao đáy chữ. |
-| `letter_height` | `0.12 m` | Chiều cao chữ D. |
-| `letter_width` | `0.08 m` | Chiều rộng chữ D. |
-| `lift_distance` | `0.05 m` | Khoảng TCP được nâng trước và sau khi viết. |
-| `eef_step` | `0.005 m` | Bước lấy mẫu Cartesian, tương đương 5 mm. |
-| `max_absolute_joint_step` | `0.5 rad` | Giới hạn bước nhảy khớp tuyệt đối. |
-| `velocity / acceleration scaling` | `0.05` | Hệ số giới hạn vận tốc và gia tốc của MoveIt. |
-
-## 6. Cấu trúc gói phần mềm
-
-```text
-ur3_draw_letter/
-├── CMakeLists.txt
-├── package.xml
-├── LICENSE
-├── README.md
-├── config/
-│   ├── draw_letter.rviz
-│   └── ur_controllers_assignment.yaml
-├── docs/images/
-│   └── .gitkeep
-├── include/ur3_draw_letter/
-│   └── letter_geometry.hpp
-├── launch/
-│   └── draw_letter_d.launch.py
-├── scripts/
-│   └── validate_runtime.sh
-├── src/
-│   └── draw_letter_d_node.cpp
-└── test/
-    └── test_letter_geometry.cpp
-```
-
-- `launch/draw_letter_d.launch.py`: khởi động toàn bộ hệ thống.
-- `src/draw_letter_d_node.cpp`: lập kế hoạch, thực thi chuyển động bằng MoveIt và xuất marker TCP.
-- `include/.../letter_geometry.hpp`: sinh waypoint hình học của chữ D.
-- `config/ur_controllers_assignment.yaml`: cấu hình bộ điều khiển mô phỏng.
-- `config/draw_letter.rviz`: cấu hình Fixed Frame, RobotModel, MoveIt và Marker.
-- `scripts/validate_runtime.sh`: kiểm tra hệ thống khi đang chạy.
-- `test/test_letter_geometry.cpp`: kiểm tra mặt phẳng và kích thước waypoint.
-
-## 7. Yêu cầu cài đặt
-
-- Ubuntu 22.04 hoặc WSL2 Ubuntu 22.04 có hỗ trợ giao diện đồ họa;
-- ROS 2 Humble Desktop;
-- MoveIt 2;
-- Gazebo Fortress;
-- `ur_description`, `ur_moveit_config` và `ur_simulation_gz`.
-
-Mô phỏng không cần robot UR thật và không cần chạy Universal Robots ROS Driver.
-Các gói UR cần được cài theo tài liệu chính thức trước khi xây dựng.
-
-## 8. Xây dựng gói
-
-Ví dụ sao chép gói vào một workspace ROS 2 mới:
+Kiểm tra ROS và GPU:
 
 ```bash
-mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws/src
-git clone https://github.com/kieudung12/HRI_b1.git ur3_draw_letter
-
-cd ~/ros2_ws
-source /opt/ros/humble/setup.bash
-
-rosdep install --from-paths src \
-  --ignore-src -r -y --rosdistro humble
-
-colcon build \
-  --packages-select ur3_draw_letter \
-  --symlink-install
-
-source install/setup.bash
+ls /opt/ros/humble/setup.bash
+nvidia-smi
 ```
 
-## 9. Chạy chương trình
+Nếu dùng CPU, xem tham số thay thế ở mục 5.
 
-Khởi chạy mô phỏng, Gazebo, RViz và nút viết chữ:
+### 3.2. Lấy mã nguồn và cài dependency hệ thống
+
+Clone đúng nhánh vào thư mục mới. Nếu đã có thư mục `b7`, bỏ qua bước clone và làm việc trong thư mục hiện có.
 
 ```bash
-cd ~/ros2_ws
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-
-ros2 launch ur3_draw_letter draw_letter_d.launch.py
+mkdir -p ~/HRI
+git clone --single-branch --branch assignments_7 \
+  https://github.com/kieudung12/HRI_k68e-re.git ~/HRI/b7
+cd ~/HRI/b7
 ```
-
-Chạy `headless` (không mở giao diện đồ họa) để kiểm tra trên cửa sổ dòng lệnh:
 
 ```bash
-ros2 launch ur3_draw_letter draw_letter_d.launch.py \
-  draw_gazebo_gui:=false draw_rviz:=false
+sudo apt update
+sudo apt install -y build-essential cmake python3-venv python3-pip \
+  python3-colcon-common-extensions python3-opencv python3-yaml \
+  libportaudio2 libasound2-plugins pulseaudio-utils git \
+  ros-humble-turtlebot4-simulator ros-humble-navigation2 \
+  ros-humble-nav2-bringup ros-humble-rmw-fastrtps-cpp
 ```
 
-Các `launch argument` (tham số khởi chạy):
-
-| Tham số | Mặc định | Ý nghĩa |
-|---|---|---|
-| `ur_type` | `ur3e` | Loại robot Universal Robots. |
-| `draw_gazebo_gui` | `true` | Bật hoặc tắt cửa sổ Gazebo. |
-| `draw_rviz` | `true` | Bật hoặc tắt RViz. |
-| `draw_node` | `true` | Bật hoặc tắt nút viết chữ. |
-| `ign_partition` | `ur3_draw_letter` | Không gian Gazebo riêng cho gói. |
-
-Chỉ nên chạy một launch Gazebo tại một thời điểm để tránh trùng `/clock` và
-`/controller_manager`.
-
-## 10. Kiểm tra hoạt động
-
-Sau khi chương trình đã chạy, mở một cửa sổ dòng lệnh khác:
+### 3.3. Chuẩn bị workspace
 
 ```bash
-cd ~/ros2_ws/src/ur3_draw_letter
-./scripts/validate_runtime.sh
+cd ~/HRI/b7
+bash setup.sh
 ```
 
-Có thể kiểm tra thủ công:
+Script tạo `.venv`, cài dependency theo `requirements.txt`, chuẩn bị TF2 tương thích trong `.runtime`, build `b7_voice_nav`, tải model vào `models/whisper-large-v3` và tạo ảnh phân vùng. Không cần workspace của bài thực hành khác.
+
+Model: [Systran/faster-whisper-large-v3](https://huggingface.co/Systran/faster-whisper-large-v3), thực thi qua [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Revision tải được khóa trong [download_model.py](tools/download_model.py); thông tin nguồn và giấy phép ở [THIRD_PARTY.md](THIRD_PARTY.md).
+
+### 3.4. Nạp môi trường ở mỗi terminal
 
 ```bash
-source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
-
-ros2 control list_controllers
-ros2 topic echo /joint_states --once
-ros2 topic info /drawing_path
-ros2 topic info /clock
+cd ~/HRI/b7
+source ./b7_env.bash
+ros2 pkg prefix b7_voice_nav
 ```
 
-Trạng thái bộ điều khiển cần đạt:
+Lệnh cuối phải trả về đường dẫn kết thúc bằng `b7/install/b7_voice_nav`. Chỉ `cd` vào thư mục chưa nạp môi trường. B7 dùng `ROS_DOMAIN_ID=97`; mỗi terminal cần source cùng file và không source workspace khác sau đó. Nếu đặt B7 ở vị trí khác, thay `~/HRI/b7` trong các lệnh bằng đường dẫn tương ứng.
 
-```text
-joint_trajectory_controller   active
-joint_state_broadcaster       active
+### 3.5. Chuẩn bị microphone
+
+Trong **Settings → Sound → Input**, chọn đúng microphone và thử thanh mức tín hiệu. Mặc định node dùng thiết bị `pulse`, tức đầu vào đang được Ubuntu chọn.
+
+```bash
+pactl get-default-source
+python3 -c 'import sounddevice as sd; print(sd.query_devices())'
 ```
 
-Các thông báo chính mong đợi:
+Giảm Input Volume nếu tín hiệu vỡ tiếng. Sau khi đổi microphone, dừng và chạy lại node nhận dạng.
 
-```text
-READY: controller recovery hold da thanh cong.
-HOVER plan: SUCCESS
-PEN DOWN Cartesian fraction: 100.0%
-LETTER D Cartesian fraction: 100.0%
-LETTER D: execution thanh cong.
-PEN UP: execution thanh cong.
-Hoan tat chu D mot lan.
+## 4. Hướng dẫn chạy từng phần
+
+### 4.1. Xem bản đồ và phân vùng
+
+Bản đồ đã có sẵn trong repository. Để sinh lại ảnh phân vùng:
+
+```bash
+cd ~/HRI/b7
+source ./b7_env.bash
+ros2 run b7_voice_nav segment_map --output regions.png
 ```
 
-## 11. Kết quả
+World rộng 10 × 8 m; bản đồ có resolution 0,05 m/ô và origin `[-5.5, -4.5, 0]`. `segment.py` đọc `free_thresh`, lan nhãn qua các ô trống kề nhau và kiểm tra goal cùng vùng liên thông, cách vật cản/ô chưa biết ít nhất 0,22 m. `world_to_pixel` xử lý cả góc quay origin và chiều dọc ảnh.
 
-- Video kết quả: <https://drive.google.com/file/d/1jdoLBA7VriOajd2HTTnhO_-BGdYgKXFS/view?usp=sharing>
-- Kho mã nguồn trên GitHub: <https://github.com/kieudung12/HRI_b1>
+| ID | Tên / cách gọi | x (m) | y (m) | yaw (rad) |
+| --- | --- | ---: | ---: | ---: |
+| A | Phòng A, phòng học | -3,20 | 2,40 | 1,57 |
+| B | Phòng B, khu vực bê | 3,20 | 2,40 | 1,57 |
+| C | Phòng thí nghiệm, khu vực xê | 0,00 | -2,50 | -1,57 |
 
+Sửa tên, alias và goal trong [regions.yaml](src/b7_voice_nav/config/regions.yaml), sau đó khởi động lại node điều hướng và node hiển thị để nạp cấu hình. Nếu cần tạo lại world/map từ hình học, chạy `python3 tools/generate_world_map.py` rồi tạo lại `regions.png` trước khi mở mô phỏng.
 
-## 12. Tài liệu tham khảo
+### 4.2. Terminal 1 — Gazebo và TurtleBot 4
 
-- [ROS 2 Humble](https://docs.ros.org/en/humble/)
-- [Mô phỏng Gazebo cho Universal Robots](https://github.com/UniversalRobots/Universal_Robots_ROS2_GZ_Simulation)
-- [Universal Robots ROS Driver](https://github.com/UniversalRobots/Universal_Robots_ROS_Driver)
-- [Ví dụ MoveIt 2 cho Universal Robots](https://github.com/dominikbelter/ros2_ur_moveit_examples)
+```bash
+cd ~/HRI/b7
+source ./b7_env.bash
+ros2 launch b7_voice_nav sim.launch.py gui:=true
+```
+
+Robot spawn tại `(0, 0, yaw=0)`. Gazebo GUI mở sau khi có `/odom` và `/scan`. Chỉ chạy một phiên simulator B7; thêm `gui:=false` nếu không cần giao diện Gazebo.
+
+### 4.3. Terminal 2 — AMCL, Nav2 và RViz
+
+```bash
+cd ~/HRI/b7
+source ./b7_env.bash
+ros2 launch b7_voice_nav navigation.launch.py
+```
+
+Chờ log `Managed nodes are active`; RViz cần báo **Navigation: active**, **Localization: active**. AMCL dùng pose khởi tạo trùng vị trí spawn. Nếu robot đã di chuyển trước khi mở localization, dùng **2D Pose Estimate** đặt lại vị trí và hướng hiện tại.
+
+RViz hiển thị bản đồ đen/trắng, lưới 1 m, mô hình TurtleBot 4 và **LiDAR đỏ từ `/scan` bật mặc định**. Footprint màu xanh ngọc, đường toàn cục màu xanh dương và đường cục bộ màu cam. Nhãn A/B/C và các vòng tròn nhỏ đánh dấu đích.
+
+Lớp tô màu vùng được bật tùy chọn tại **Region labels → Namespaces → region_floors**. Nhóm **Diagnostics** chứa costmap; việc ẩn chúng trên RViz không thay đổi cách Nav2 tránh vật cản. Thêm `rviz:=false` nếu chỉ cần các node điều hướng.
+
+![RViz với LiDAR và mô hình robot](evidence/rviz.png)
+
+### 4.4. Terminal 3 — Node điều hướng bằng câu lệnh
+
+```bash
+cd ~/HRI/b7
+source ./b7_env.bash
+ros2 run b7_voice_nav voice_navigator --ros-args -p use_sim_time:=true
+```
+
+Node chờ văn bản trên `/voice_command`, kiểm tra đầy đủ tên vùng rồi gửi `NavigateToPose` trong frame `map`. Mỗi chặng phải thành công mới gửi chặng tiếp theo. Nếu Nav2 từ chối hoặc không hoàn thành goal, hành trình dừng. Lệnh mới bị bỏ qua khi robot đang thực hiện hành trình.
+
+### 4.5. Terminal 4 — Nhận dạng giọng nói
+
+```bash
+cd ~/HRI/b7
+source ./b7_env.bash
+ros2 run b7_voice_nav speech_recognition
+```
+
+Chờ log `Whisper san sang`, sau đó:
+
+1. Nhấn **Enter** để bắt đầu ghi âm.
+2. Nói câu lệnh rõ ràng.
+3. Nhấn **Enter** lần nữa để kết thúc ghi.
+4. Kiểm tra dòng `Nghe duoc` và log `Đang gửi đích ...` ở terminal 3.
+5. Chờ robot hoàn thành hành trình trước khi ghi lệnh tiếp theo.
+
+Mỗi bản ghi tối đa 15 giây. Node in RMS/peak và cảnh báo nếu âm thanh quá nhỏ hoặc bị méo. Âm thanh chỉ được ghi khi nhấn Enter; đây không phải chế độ luôn lắng nghe.
+
+| Câu lệnh | Hành trình mong đợi |
+| --- | --- |
+| “Đi đến khu vực A.” | A |
+| “Di chuyển từ khu vực A đến khu vực B.” | A → B, kể cả khi robot đang ở vùng khác |
+| “Đi đến phòng thí nghiệm.” | C |
+| “Đi khu A rồi sang khu B rồi sang khu C.” | A → B → C |
+| “Di chuyển đến khu vực A cho tôi.” | A |
+| “Đi đến khu vực D.” | Báo vùng không tồn tại, không gửi goal |
+
+Alias hỗ trợ cách đọc `bê`, `xê`, cách gọi ngắn `khu A` và các từ nối `qua`, `đến`, `tới`, `sang`, `rồi sang`, `sau đó sang`. Parser bỏ đuôi lịch sự như “cho tôi”, “giúp tôi với” trước khi tách hành trình; không suy đoán vùng thiếu hoặc sửa vùng không tồn tại thành vùng hợp lệ.
+
+Prompt ngữ cảnh nằm trong [whisper_vi.txt](src/b7_voice_nav/b7_voice_nav/prompts/whisper_vi.txt), được `whisper_engine.py` đọc trực tiếp. Nội dung là `Câu lệnh điều hướng robot bằng tiếng Việt.` Prompt cung cấp ngữ cảnh cho Whisper; việc tìm vùng và sắp thứ tự điểm đến do parser Python thực hiện.
+
+### 4.6. Kiểm thử và trình diễn
+
+Chạy kiểm thử tự động sau khi nạp môi trường:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Để kiểm tra riêng Nav2, gửi văn bản thay microphone. Chạy từng lệnh và chờ hành trình xong trước lệnh tiếp theo:
+
+```bash
+ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Đi đến khu vực A'}"
+ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Di chuyển từ khu vực A đến khu vực B'}"
+ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Đi đến phòng thí nghiệm'}"
+ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Đi đến khu vực D'}"
+```
+
+Thử một file âm thanh bằng đúng model, không cần mở microphone:
+
+```bash
+python3 tools/transcribe_audio.py evidence/audio/a.mp3
+```
+
+Trình tự trình diễn đáp ứng yêu cầu bài tập:
+
+1. Mở `regions.png`, xác định ba vùng và điểm đích trong YAML.
+2. Nói “Đi đến phòng thí nghiệm”, chờ robot đến C.
+3. Nói “Di chuyển từ khu vực A đến khu vực B”, kiểm tra robot đi A trước B từ vị trí C.
+4. Nói “Đi đến khu vực A”, chờ robot đến A. Qua ba bước đã có ba câu giọng nói khác nhau.
+5. Nói “Đi đến khu vực D”, kiểm tra lỗi và xác nhận không có goal mới.
+
+Lưu bản chép, log từng goal và ảnh RViz/Gazebo. Không gửi thêm goal bằng RViz hoặc teleop trong lúc kiểm tra hành trình giọng nói. [Bảng kiểm thử](evidence/kiem_thu.md) và các file JSON ghi rõ điều kiện, dữ liệu và kết quả. Âm thanh lưu trong repository là giọng tổng hợp; kết quả này không thay thế trình diễn bằng microphone và giọng người thật.
+
+Nếu cần nộp thêm ZIP nguồn, chạy `python3 tools/package_submission.py --without-model --output b7_submission_source.zip`. Máy nhận chạy lại `bash setup.sh` để tạo môi trường và tải model.
+
+## 5. Khắc phục sự cố thường gặp
+
+| Hiện tượng | Cách xử lý |
+| --- | --- |
+| `Package 'b7_voice_nav' not found` | Chạy `cd ~/HRI/b7` rồi `source ./b7_env.bash` trong đúng terminal. Kiểm tra `ros2 pkg prefix b7_voice_nav`. Nếu chưa build, chạy `bash setup.sh`. Không source workspace khác sau B7. |
+| Gazebo chưa hiện hoặc báo đã có server | GUI chờ `/odom` và `/scan`. Chỉ giữ một phiên `sim.launch.py`; dừng phiên cũ bằng Ctrl+C trước khi mở lại. Thử `gui:=false` để kiểm tra server riêng. |
+| Không thấy LiDAR trong RViz | Bật **LiDAR**, topic `/scan`, QoS **Best Effort**. Dùng `ros2 topic hz /scan` kiểm tra dữ liệu; các terminal phải nạp cùng môi trường B7. Fixed Frame là `map`. |
+| Node nhận dạng chưa ghi âm | Chờ `Whisper san sang`, nhấn Enter để bắt đầu và Enter lần nữa để kết thúc. Kiểm tra đầu vào ở Settings → Sound → Input; thử `-p device:=pulse`. |
+| Âm thanh nhỏ, méo hoặc chép sai | Xem RMS/peak và cảnh báo; chọn đúng microphone, chỉnh Input Volume, nói gần mic, tránh tiếng nền. Sau khi đổi đầu vào, chạy lại node nhận dạng. |
+| Báo chưa có model | Chạy lại `bash setup.sh`, hoặc `.venv/bin/python tools/download_model.py`. Kiểm tra `models/whisper-large-v3/model.bin`. |
+| GPU thiếu VRAM | Chạy nhận dạng với `--ros-args -p compute_type:=int8_float16`; có thể tắt RViz hoặc Gazebo GUI để giảm tải. |
+| Không có GPU/CUDA phù hợp | Dùng `--ros-args -p compute_device:=cpu -p compute_type:=int8`. Xử lý trên CPU chậm hơn; mặc định là CUDA FP16. |
+| Nhận được chữ nhưng robot không đi | Xem terminal `voice_navigator`: lỗi tên vùng thì chưa gửi goal; `Nav2 chưa sẵn sàng` thì kiểm tra terminal 2; `Đang điều hướng` thì chờ hành trình hiện tại. Lệnh hợp lệ phải có log `Đang gửi đích ...`. |
+| Robot định vị sai hoặc không lập được đường | Kiểm tra AMCL, map, TF và `/scan`; dùng **2D Pose Estimate** đặt pose thật nếu robot đã di chuyển trước khi mở localization. Không gửi đồng thời goal giọng nói, goal RViz và teleop. |
+| Sửa Python/YAML nhưng node vẫn chạy hành vi cũ | Dừng và chạy lại node liên quan. Sau khi thay package, launch hoặc tài nguyên đóng gói, chạy `colcon build --base-paths src --packages-select b7_voice_nav --symlink-install` rồi source lại `b7_env.bash`. |
+| Báo khu vực D không tồn tại | Đây là hành vi mong đợi. Vùng hợp lệ hiện tại là A/B/C; thêm vùng phải cập nhật tên/alias và một goal an toàn trong `regions.yaml`. |
