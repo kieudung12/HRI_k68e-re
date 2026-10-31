@@ -29,7 +29,7 @@ b7/
 ├── README.md                      # Mục tiêu, cài đặt, chạy và xử lý lỗi
 ├── LICENSE                        # Giấy phép Apache-2.0
 ├── THIRD_PARTY.md                  # Nguồn và giấy phép bên thứ ba
-├── .gitignore                     # Loại build, cache, môi trường và model khỏi Git
+├── .gitignore                     # Loại build, cache, model và dữ liệu kiểm thử
 ├── b7_env.bash                    # Nạp môi trường ROS riêng của B7
 ├── setup.sh                       # Cài Python, chuẩn bị runtime, build, tải model
 ├── setup_runtime.sh               # Build TF2 phiên bản tương thích trong B7
@@ -63,23 +63,15 @@ b7/
 │   │   ├── map.yaml               # Resolution, origin và ngưỡng occupancy
 │   │   └── map.pgm                # Ảnh bản đồ 2D
 │   └── worlds/b7_campus.sdf       # World tương ứng bản đồ
-├── tools/
-│   ├── generate_world_map.py      # Sinh đồng thời world và occupancy map
-│   ├── download_model.py          # Tải model theo revision đã khóa
-│   ├── transcribe_audio.py        # Thử nhận dạng một file âm thanh
-│   └── package_submission.py      # Đóng gói B7 thành ZIP
-├── tests/
-│   ├── test_common.py             # Lệnh, trường hợp lỗi, đổi tọa độ
-│   └── test_segmentation.py       # Tường, vùng liên thông, độ an toàn goal
-└── evidence/
-    ├── kiem_thu.md                # Điều kiện và kết quả kiểm thử
-    ├── rviz.png                   # Ảnh RViz thực tế có LiDAR
-    ├── *_results.json             # Kết quả Whisper, Nav2 và phân vùng
-    ├── microphone_pipeline.json   # Kiểm tra microphone ảo → ROS
-    └── audio/                     # Âm thanh tổng hợp dùng kiểm thử
+└── tools/
+    ├── generate_world_map.py      # Sinh đồng thời world và occupancy map
+    ├── download_model.py          # Tải model theo revision đã khóa
+    └── package_submission.py      # Đóng gói B7 thành ZIP
 ```
 
 Sau cài đặt sẽ có thêm `.venv/`, `.runtime/`, `build/`, `install/`, `log/` và `models/whisper-large-v3/`. Các thư mục này phụ thuộc máy hoặc có dung lượng lớn nên không đưa lên Git. Model được tải lại bằng `setup.sh`; toàn bộ source, launch, config, prompt và dữ liệu bản đồ có trong repository.
+
+Code kiểm thử, âm thanh mẫu, log và kết quả kiểm thử được giữ trên máy để tổng hợp báo cáo, không đưa vào nhánh nộp bài.
 
 ## 3. Cài đặt và chuẩn bị môi trường
 
@@ -197,8 +189,6 @@ RViz hiển thị bản đồ đen/trắng, lưới 1 m, mô hình TurtleBot 4 v
 
 Lớp tô màu vùng được bật tùy chọn tại **Region labels → Namespaces → region_floors**. Nhóm **Diagnostics** chứa costmap; việc ẩn chúng trên RViz không thay đổi cách Nav2 tránh vật cản. Thêm `rviz:=false` nếu chỉ cần các node điều hướng.
 
-![RViz với LiDAR và mô hình robot](evidence/rviz.png)
-
 ### 4.4. Terminal 3 — Node điều hướng bằng câu lệnh
 
 ```bash
@@ -240,28 +230,7 @@ Alias hỗ trợ cách đọc `bê`, `xê`, cách gọi ngắn `khu A` và các 
 
 Prompt ngữ cảnh nằm trong [whisper_vi.txt](src/b7_voice_nav/b7_voice_nav/prompts/whisper_vi.txt), được `whisper_engine.py` đọc trực tiếp. Nội dung là `Câu lệnh điều hướng robot bằng tiếng Việt.` Prompt cung cấp ngữ cảnh cho Whisper; việc tìm vùng và sắp thứ tự điểm đến do parser Python thực hiện.
 
-### 4.6. Kiểm thử và trình diễn
-
-Chạy kiểm thử tự động sau khi nạp môi trường:
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-Để kiểm tra riêng Nav2, gửi văn bản thay microphone. Chạy từng lệnh và chờ hành trình xong trước lệnh tiếp theo:
-
-```bash
-ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Đi đến khu vực A'}"
-ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Di chuyển từ khu vực A đến khu vực B'}"
-ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Đi đến phòng thí nghiệm'}"
-ros2 topic pub --once /voice_command std_msgs/msg/String "{data: 'Đi đến khu vực D'}"
-```
-
-Thử một file âm thanh bằng đúng model, không cần mở microphone:
-
-```bash
-python3 tools/transcribe_audio.py evidence/audio/a.mp3
-```
+### 4.6. Trình diễn chức năng
 
 Trình tự trình diễn đáp ứng yêu cầu bài tập:
 
@@ -271,7 +240,7 @@ Trình tự trình diễn đáp ứng yêu cầu bài tập:
 4. Nói “Đi đến khu vực A”, chờ robot đến A. Qua ba bước đã có ba câu giọng nói khác nhau.
 5. Nói “Đi đến khu vực D”, kiểm tra lỗi và xác nhận không có goal mới.
 
-Lưu bản chép, log từng goal và ảnh RViz/Gazebo. Không gửi thêm goal bằng RViz hoặc teleop trong lúc kiểm tra hành trình giọng nói. [Bảng kiểm thử](evidence/kiem_thu.md) và các file JSON ghi rõ điều kiện, dữ liệu và kết quả. Âm thanh lưu trong repository là giọng tổng hợp; kết quả này không thay thế trình diễn bằng microphone và giọng người thật.
+Lưu bản chép, log từng goal và ảnh RViz/Gazebo trên máy để tổng hợp vào báo cáo. Không gửi thêm goal bằng RViz hoặc teleop trong lúc trình diễn hành trình giọng nói.
 
 Nếu cần nộp thêm ZIP nguồn, chạy `python3 tools/package_submission.py --without-model --output b7_submission_source.zip`. Máy nhận chạy lại `bash setup.sh` để tạo môi trường và tải model.
 

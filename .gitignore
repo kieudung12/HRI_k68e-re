@@ -7,3 +7,8 @@
 __pycache__/
 *.pyc
 b7_submission*.zip
+
+# Local validation and report material; keep out of the submission branch.
+/tests/
+/evidence/
+/tools/transcribe_audio.py
