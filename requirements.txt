@@ -1,0 +1,6 @@
+deepface==0.0.104
+retina-face==0.0.19
+onnxruntime==1.23.2
+numpy==1.26.4
+opencv-contrib-python-headless==4.10.0.84
+Pillow==11.3.0
